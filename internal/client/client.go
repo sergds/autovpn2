@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/grandcat/zeroconf"
+	"github.com/sergds/autovpn2/internal/fastansi"
 )
 
 func ResolveFirstAddr() []net.IP {
@@ -15,6 +16,8 @@ func ResolveFirstAddr() []net.IP {
 }
 
 func ResolveAddr(host string) []net.IP {
+	sp := fastansi.NewStatusPrinter()
+	sp.Status(1, "Resolving AutoVPN host(s) via mDNS...")
 	resolver, err := zeroconf.NewResolver(nil)
 	if err != nil {
 		log.Fatalln(err.Error())
@@ -25,8 +28,8 @@ func ResolveAddr(host string) []net.IP {
 	entries := make(chan *zeroconf.ServiceEntry)
 	go func(results <-chan *zeroconf.ServiceEntry) {
 		for entry := range results {
-			//log.Println(entry)
 			autovpns = append(autovpns, entry)
+			sp.Status(0, "Found so far: "+fmt.Sprint(len(autovpns)))
 		}
 		//log.Println("No more entries.")
 	}(entries)
@@ -34,13 +37,13 @@ func ResolveAddr(host string) []net.IP {
 	defer cancel()
 	err = resolver.Browse(ctx, "_autovpn._tcp", "local.", entries)
 	if err != nil {
-		log.Fatalln("Failed to browse:", err.Error())
+		sp.Status(0, "Failed to browse:", err.Error())
 	}
 
 	<-ctx.Done()
 
 	if len(autovpns) == 0 {
-		fmt.Println("Failed to detect AutoVPN servers through mDNS!")
+		sp.Status(0, "Failed to detect AutoVPN servers through mDNS!")
 		return nil
 	}
 
@@ -53,6 +56,6 @@ func ResolveAddr(host string) []net.IP {
 			}
 		}
 	}
-
+	sp.PushLines()
 	return autovpns[0].AddrIPv4
 }

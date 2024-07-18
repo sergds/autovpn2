@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	fmt.Print("\n\n")
 	app := &cli.App{
 		Name:    "autovpn",
 		Usage:   "autovpnupdater rewritten in go",
@@ -25,6 +26,8 @@ func main() {
 					if ctx.NArg() != 0 {
 						client.Apply(ctx.Args().First())
 						os.Exit(0)
+					} else {
+						fmt.Println("Please specify path to a playbook!")
 					}
 					return nil
 				},
