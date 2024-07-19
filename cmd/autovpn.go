@@ -37,7 +37,7 @@ func main() {
 				Aliases: []string{"l", "ls", "lis"},
 				Usage:   "List of applied playbooks on an autovpn server.",
 				Action: func(ctx *cli.Context) error {
-					fmt.Println("TODO: Retrieve playbooks from server.")
+					client.List()
 					os.Exit(0)
 					return nil
 				},
@@ -51,7 +51,7 @@ func main() {
 						fmt.Println("Missing playbook name!")
 						os.Exit(0)
 					}
-					fmt.Println("TODO: Retrieve playbooks from server.")
+					client.Undo(ctx.Args().First())
 					os.Exit(0)
 					return nil
 				},

@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	"github.com/grandcat/zeroconf"
 	"github.com/sergds/autovpn2/internal/fastansi"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func ResolveFirstAddr() []net.IP {
@@ -58,4 +61,26 @@ func ResolveAddr(host string) []net.IP {
 	}
 	sp.PushLines()
 	return autovpns[0].AddrIPv4
+}
+
+func ConnectToServer(sp *fastansi.StatusPrinter) *grpc.ClientConn {
+	addrs := ResolveFirstAddr()
+	sp.Status(1, "Connecting...")
+	if addrs == nil {
+		sp.Status(0, "No servers found! Terminating!")
+		os.Exit(0)
+	}
+	var conn *grpc.ClientConn
+
+	for _, addr := range addrs {
+		sp.Status(0, "Trying connecting to AutoVPN @ "+addr.String())
+
+		var err error
+		conn, err = grpc.NewClient(addr.String()+":15328", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			continue
+		}
+
+	}
+	return conn
 }

@@ -19,6 +19,7 @@ require (
 )
 
 require (
+	github.com/antonholmquist/jason v1.0.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/grandcat/zeroconf v1.0.0
 	github.com/likexian/doh v0.7.1

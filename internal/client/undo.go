@@ -5,20 +5,19 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 
 	"github.com/fatih/color"
 	"github.com/sergds/autovpn2/internal/fastansi"
 	pb "github.com/sergds/autovpn2/internal/rpc"
 )
 
-func runApply(cl pb.AutoVPNClient, playbookpath string) {
+func runUndo(cl pb.AutoVPNClient, name string) {
 	sp := fastansi.NewStatusPrinter()
-	sp.Status(2, color.YellowString("Applying playbook..."))
+	sp.Status(2, color.YellowString("Undoing playbook..."))
 	sp.Status(1, color.YellowString("Waiting for status..."))
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	stream, err := cl.Apply(ctx, &pb.ApplyRequest{Playbook: playbookpath})
+	stream, err := cl.Undo(ctx, &pb.UndoRequest{Playbookname: name})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -32,15 +31,13 @@ func runApply(cl pb.AutoVPNClient, playbookpath string) {
 			break
 		}
 		switch status.Status {
-		case pb.STATUS_FETCHIP:
-			sp.Status(1, color.YellowString("Fetching ip adressess..."))
-		case pb.STATUS_DNS:
-			sp.Status(1, color.YellowString("Updating DNS entries..."))
-		case pb.STATUS_ROUTES:
-			sp.Status(1, color.YellowString("Updating Routes..."))
-		case pb.STATUS_ERROR:
-			sp.Status(1, color.RedString("Error while applying playbook!"))
-		case pb.STATUS_NOTIFY:
+		case pb.UNDO_STATUS_DNS:
+			sp.Status(1, color.YellowString("Removing DNS entries..."))
+		case pb.UNDO_STATUS_ROUTES:
+			sp.Status(1, color.YellowString("Removing Routes..."))
+		case pb.UNDO_STATUS_ERROR:
+			sp.Status(1, color.RedString("Error while undoing playbook!"))
+		case pb.UNDO_STATUS_NOTIFY:
 			{
 				sp.Status(1, color.BlueString(*status.Statustext))
 				continue
@@ -53,14 +50,10 @@ func runApply(cl pb.AutoVPNClient, playbookpath string) {
 			sp.Status(0, *status.Statustext)
 		}
 	}
+
 }
 
-func Apply(playbookpath string) {
-	pbc, err := os.ReadFile(playbookpath)
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(0)
-	}
+func Undo(playbookname string) {
 	sp := fastansi.NewStatusPrinter()
 	conn := ConnectToServer(sp)
 	sp.Status(0, "Connected to AutoVPN @ "+conn.Target())
@@ -69,5 +62,5 @@ func Apply(playbookpath string) {
 	defer conn.Close()
 	c := pb.NewAutoVPNClient(conn)
 
-	runApply(c, string(pbc))
+	runUndo(c, playbookname)
 }
