@@ -42,6 +42,9 @@ adapterconfig: # Correspond to Authenticate() interface args
   routes:
     creds: "admin:password"
     endpoint: "http://10.0.2.1"
+  dns:
+    creds: "apikey"
+    endpoint: "http://10.0.2.2:8080"
 interface: Wireguard1
 hosts: # List of hosts to route through VPN.
 # Frontend
@@ -56,8 +59,9 @@ hosts: # List of hosts to route through VPN.
 - rr2---sn-8ph2xajvh-ut5l.googlevideo.com
 ```
 
-### (Implemented) Features
+### (Implemented) Features (more like TODO)
 - [X] Routes
-- [ ] DNS
+- [X] DNS
+- [ ] Try retrieving data from adapters for undo instead of it storing locally. (To avoid stray routes or dns records of different addresses)
 - [ ] Auto-refreshing of routes
 - [ ] Clean code

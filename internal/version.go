@@ -1,5 +1,5 @@
 package internal
 
 func Version() string {
-	return "2.0.0-dev"
+	return "2.0.0-alpha"
 }

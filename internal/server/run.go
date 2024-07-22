@@ -11,6 +11,7 @@ import (
 	"github.com/grandcat/zeroconf"
 	"github.com/likexian/doh"
 	"github.com/likexian/doh/dns"
+	dnsadapters "github.com/sergds/autovpn2/internal/adapters/dns"
 	"github.com/sergds/autovpn2/internal/adapters/routes"
 	"github.com/sergds/autovpn2/internal/playbook"
 	pb "github.com/sergds/autovpn2/internal/rpc"
@@ -23,7 +24,7 @@ var clear string = "\t\t\t\t\t\t"
 type AutoVPNServer struct {
 	pb.UnimplementedAutoVPNServer
 	playbooksInstalled map[*playbook.Playbook]bool // bool indicates if playbook was successfully applied.
-	playbookAddrs      map[string][]string
+	playbookAddrs      map[string]map[string]string
 }
 
 func (s *AutoVPNServer) Apply(in *pb.ApplyRequest, ss pb.AutoVPN_ApplyServer) error {
@@ -70,18 +71,35 @@ func (s *AutoVPNServer) Apply(in *pb.ApplyRequest, ss pb.AutoVPN_ApplyServer) er
 			dnsrecords[h] = ip
 		}
 	}
-	var addrs []string = make([]string, 0)
-	for _, ip := range dnsrecords {
-		addrs = append(addrs, ip)
+	s.playbookAddrs[playbook.Name] = dnsrecords
+	st := "Authenticating with DNS Adapter..."
+	ss.Send(&pb.ApplyResponse{Status: pb.STATUS_DNS, Statustext: &st})
+	var dnsad dnsadapters.DNSAdapter = dnsadapters.NewDNSAdapter(playbook.Adapters.Dns)
+	if err := dnsad.Authenticate(playbook.Adapterconfig.Dns["creds"], playbook.Adapterconfig.Dns["endpoint"]); err == nil {
+		st := "Authenticated!"
+		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_DNS, Statustext: &st})
+		time.Sleep(1 * time.Second)
+	} else {
+		st := "Unauthorized! " + err.Error()
+		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ERROR, Statustext: &st})
+		time.Sleep(1 * time.Second)
+		return nil
 	}
-	s.playbookAddrs[playbook.Name] = addrs
-	ss.Send(&pb.ApplyResponse{Status: pb.STATUS_DNS, Statustext: &clear})
 	for host, ip := range dnsrecords {
-		time.Sleep(time.Second * 1)
+		ipaddr := net.ParseIP(ip)
+		err := dnsad.AddRecord(dnsadapters.DNSRecord{Domain: host, Addr: ipaddr, Type: "A"})
+		if err != nil {
+			st := "Failed to add " + host + "\tIN\tA\t" + ip + ". " + err.Error()
+			ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ERROR, Statustext: &st})
+			return nil
+		}
 		s.playbooksInstalled[playbook] = true // Since the first change has been commited, the playbook is now deemed "installed"
 		st := "Added " + host + "\tIN\tA\t" + ip
 		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_DNS, Statustext: &st})
 	}
+	dnsad.CommitRecords()
+	st = "Authenticating with " + playbook.Adapters.Routes + " route adapter..."
+	ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ROUTES, Statustext: &st})
 	var routead routes.RouteAdapter = routes.NewRouteAdapter(playbook.Adapters.Routes)
 	if routead == nil {
 		st := "Failed to create route adapter " + playbook.Adapters.Routes
@@ -89,8 +107,6 @@ func (s *AutoVPNServer) Apply(in *pb.ApplyRequest, ss pb.AutoVPN_ApplyServer) er
 		time.Sleep(time.Millisecond * 2000)
 		return nil
 	}
-	st := "Authenticating with " + playbook.Adapters.Routes + " route adapter..."
-	ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ROUTES, Statustext: &st})
 	ok := routead.Authenticate(playbook.Adapterconfig.Routes["creds"], playbook.Adapterconfig.Routes["endpoint"])
 	if ok {
 		st := "Authenticated!"
@@ -175,11 +191,36 @@ func (s *AutoVPNServer) Undo(in *pb.UndoRequest, ss pb.AutoVPN_UndoServer) error
 		return nil
 	}
 	ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_DNS})
+	var dnsad dnsadapters.DNSAdapter = dnsadapters.NewDNSAdapter(curpb.Adapters.Dns)
+	if dnsad == nil {
+		st := "Failed to create dns adapter " + curpb.Adapters.Dns
+		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ERROR, Statustext: &st})
+		time.Sleep(time.Millisecond * 2000)
+		return nil
+	}
+	err := dnsad.Authenticate(curpb.Adapterconfig.Dns["creds"], curpb.Adapterconfig.Dns["endpoint"])
+	if err == nil {
+		st := "Authenticated!"
+		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES, Statustext: &st})
+		time.Sleep(time.Millisecond * 2000)
+	} else {
+		st := "Failed to authenticate on " + curpb.Adapters.Dns + ". Check credentials! " + err.Error()
+		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ERROR, Statustext: &st})
+		time.Sleep(time.Millisecond * 2000)
+		return nil
+	}
 	for _, domain := range curpb.Hosts {
-		time.Sleep(1 * time.Second)
+		domaddr := net.ParseIP(s.playbookAddrs[in.Playbookname][domain])
+		err := dnsad.DelRecord(dnsadapters.DNSRecord{Domain: domain, Addr: domaddr})
+		if err != nil {
+			st := "Failed to delete " + domain + ": " + err.Error()
+			ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_DNS, Statustext: &st})
+			time.Sleep(1 * time.Second)
+		}
 		st := "Deleted " + domain
 		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_DNS, Statustext: &st})
 	}
+	dnsad.CommitRecords()
 	ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES})
 	st := "Authenticating with " + curpb.Adapters.Routes + " route adapter..."
 	ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES, Statustext: &st})
@@ -219,7 +260,7 @@ func ServerMain() {
 		log.Fatalln(err.Error())
 	}
 	s := grpc.NewServer()
-	pb.RegisterAutoVPNServer(s, &AutoVPNServer{playbooksInstalled: make(map[*playbook.Playbook]bool), playbookAddrs: make(map[string][]string)})
+	pb.RegisterAutoVPNServer(s, &AutoVPNServer{playbooksInstalled: make(map[*playbook.Playbook]bool), playbookAddrs: make(map[string]map[string]string)})
 	host, _ := os.Hostname()
 	server, err := zeroconf.Register("AutoVPN Server @ "+host, "_autovpn._tcp", "local.", 15328, []string{"txtv=0", "host=" + host}, nil)
 	defer server.Shutdown()
