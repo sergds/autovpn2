@@ -1,11 +1,20 @@
 # AutoVPN 2
-A tool to manage VPN routed hosts.
+![logo](logo.png)
+A tool to easily manage VPN routed hosts in a small/home network with a local DNS (like Pi-Hole).
 
-It was created specifically for my needs, because of Russian Government blocking "illegal" websites, as well as western companies geoblocking russians (because of US Export Restrictions OR believing that a geoblock will stop the war.). 
+### Why?
+It was created specifically for my needs, because of Russian Government blocking "illegal" websites, as well as western companies geoblocking russians (because of US Export Restrictions or other regulations.). 
 
-So in order to evade these pointless blocks network-wide i created this tool.
+This tool was made in order to evade these pointless blocks network-wide without wasting time manually verifying (and later updating) addesses.
 
- Actually this is a second iteration of autovpn toolset. The first autovpn had a one big list of domains to be "unblocked" and was a simple python script, which needed to be run periodally over ssh to keep Keenetic routes and Pi-hole DNS fresh. This became clumsy really fast, so i rewrote this in Go as a server-client app, with playbook approach.
+Actually this is a second iteration of the autovpn toolset. The first autovpn had a one big list of domains to be "unblocked" and was a simple python script, which needed to be run periodally over ssh to keep Keenetic routes and Pi-hole DNS fresh. This became clumsy really fast, and after the rumors about russian government blocking YouTube reached me i decided to rewrite this in Go as a client-server app, with playbook approach to be able to scale it up a bit easier.
+
+### Currently Available Adapters
+DNS:
+- PiholeAPI (Implementation of DNS Adapter for Pi-hole web API.)
+
+Routes:
+- KeeneticRCI (Implementation of routes adapter for Keenetic Remote Configuration Interface)
 
 ### Usage
 ```
@@ -16,7 +25,7 @@ USAGE:
    autovpn [global options] command [command options]
 
 VERSION:
-   2.0.0-dev
+   2.0.0-alpha
 
 COMMANDS:
    apply, a, ap, app      Apply local playbook to an autovpn environment.
@@ -59,9 +68,11 @@ hosts: # List of hosts to route through VPN.
 - rr2---sn-8ph2xajvh-ut5l.googlevideo.com
 ```
 
-### (Implemented) Features (more like TODO)
+### Implemented Features (more like TODO)
 - [X] Routes
 - [X] DNS
-- [ ] Try retrieving data from adapters for undo instead of it storing locally. (To avoid stray routes or dns records of different addresses)
-- [ ] Auto-refreshing of routes
+- [ ] Try retrieving data from adapters for undo instead of it storing locally. (To avoid duplicate stray routes or dns records of different addresses)
+- [ ] Allow specifying raw IPs in playbook's hosts
+- [ ] Store server playbooks in persistient cache (File? (Key-value) DB?)
+- [ ] Auto-refreshing of playbook routes and DNS
 - [ ] Clean code

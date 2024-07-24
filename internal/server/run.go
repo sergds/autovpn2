@@ -75,6 +75,7 @@ func (s *AutoVPNServer) Apply(in *pb.ApplyRequest, ss pb.AutoVPN_ApplyServer) er
 	st := "Authenticating with DNS Adapter..."
 	ss.Send(&pb.ApplyResponse{Status: pb.STATUS_DNS, Statustext: &st})
 	var dnsad dnsadapters.DNSAdapter = dnsadapters.NewDNSAdapter(playbook.Adapters.Dns)
+	failednames := make([]string, 0)
 	if err := dnsad.Authenticate(playbook.Adapterconfig.Dns["creds"], playbook.Adapterconfig.Dns["endpoint"]); err == nil {
 		st := "Authenticated!"
 		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_DNS, Statustext: &st})
@@ -89,7 +90,8 @@ func (s *AutoVPNServer) Apply(in *pb.ApplyRequest, ss pb.AutoVPN_ApplyServer) er
 		ipaddr := net.ParseIP(ip)
 		err := dnsad.AddRecord(dnsadapters.DNSRecord{Domain: host, Addr: ipaddr, Type: "A"})
 		if err != nil {
-			st := "Failed to add " + host + "\tIN\tA\t" + ip + ". " + err.Error()
+			st := "Failed to add " + host + "\tIN\tA\t" + ip + ": " + err.Error()
+			failednames = append(failednames, host)
 			ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ERROR, Statustext: &st})
 			return nil
 		}
@@ -98,27 +100,39 @@ func (s *AutoVPNServer) Apply(in *pb.ApplyRequest, ss pb.AutoVPN_ApplyServer) er
 		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_DNS, Statustext: &st})
 	}
 	dnsad.CommitRecords()
+	if len(failednames) != 0 {
+		st := "Following DNS records failed to add: " + strings.Join(failednames, ", ") + ". Manual intervention is likely needed"
+		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ROUTES, Statustext: &st})
+		time.Sleep(time.Millisecond * 2000)
+	}
 	st = "Authenticating with " + playbook.Adapters.Routes + " route adapter..."
 	ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ROUTES, Statustext: &st})
 	var routead routes.RouteAdapter = routes.NewRouteAdapter(playbook.Adapters.Routes)
+	failedroutes := make([]string, 0)
 	if routead == nil {
 		st := "Failed to create route adapter " + playbook.Adapters.Routes
 		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ERROR, Statustext: &st})
 		time.Sleep(time.Millisecond * 2000)
 		return nil
 	}
-	ok := routead.Authenticate(playbook.Adapterconfig.Routes["creds"], playbook.Adapterconfig.Routes["endpoint"])
-	if ok {
+	err = routead.Authenticate(playbook.Adapterconfig.Routes["creds"], playbook.Adapterconfig.Routes["endpoint"])
+	if err == nil {
 		st := "Authenticated!"
 		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ROUTES, Statustext: &st})
 		time.Sleep(time.Millisecond * 2000)
 	} else {
-		st := "Failed to authenticate on " + playbook.Adapters.Routes + ". Check credentials!"
+		st := "Failed to authenticate on " + playbook.Adapters.Routes + ": " + err.Error()
 		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ERROR, Statustext: &st})
 		time.Sleep(time.Millisecond * 2000)
 		return nil
 	}
-	cur_routes := routead.GetRoutes()
+	cur_routes, err := routead.GetRoutes()
+	if err != nil {
+		st := "Failed to get routes from " + playbook.Adapters.Routes + ": " + err.Error()
+		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ERROR, Statustext: &st})
+		time.Sleep(time.Millisecond * 2000)
+		return nil
+	}
 	route_conflicts := make([]routes.Route, 0)
 	for _, r := range cur_routes {
 		ip := strings.Split(r.Destination, "/")[0] // strip mask notation
@@ -135,18 +149,19 @@ func (s *AutoVPNServer) Apply(in *pb.ApplyRequest, ss pb.AutoVPN_ApplyServer) er
 		st = "Removing conflicts..."
 		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ROUTES, Statustext: &st})
 		for _, r := range route_conflicts {
-			ok := routead.DelRoute(r)
-			if !ok {
-				st := "Failed to delete a route! " + r.Destination
+			err := routead.DelRoute(r)
+			if err != nil {
+				st := "Failed to delete a route " + r.Destination + ": " + err.Error()
 				ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ERROR, Statustext: &st})
 				return nil
 			}
 		}
 	}
 	for h, ip := range dnsrecords {
-		ok := routead.AddRoute(routes.Route{Destination: ip, Gateway: "0.0.0.0", Interface: playbook.Interface}, "[AutoVPN2] Playbook: "+playbook.Name+" Host: "+h)
-		if !ok {
-			st := "Failed to add a route! " + ip
+		err := routead.AddRoute(routes.Route{Destination: ip, Gateway: "0.0.0.0", Interface: playbook.Interface}, "[AutoVPN2] Playbook: "+playbook.Name+" Host: "+h)
+		if err != nil {
+			st := "Failed to add a route " + ip + ": " + err.Error()
+			failedroutes = append(failedroutes, ip)
 			ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ERROR, Statustext: &st})
 			return nil
 		}
@@ -156,6 +171,11 @@ func (s *AutoVPNServer) Apply(in *pb.ApplyRequest, ss pb.AutoVPN_ApplyServer) er
 	st = "Saving changes"
 	ss.Send(&pb.ApplyResponse{Status: pb.STATUS_NOTIFY, Statustext: &st})
 	routead.SaveConfig()
+	if len(failedroutes) != 0 {
+		st := "Following Routes failed to add: " + strings.Join(failedroutes, ", ") + ". Manual intervention is likely needed"
+		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ROUTES, Statustext: &st})
+		time.Sleep(time.Millisecond * 2000)
+	}
 	return nil
 }
 
@@ -199,6 +219,7 @@ func (s *AutoVPNServer) Undo(in *pb.UndoRequest, ss pb.AutoVPN_UndoServer) error
 		return nil
 	}
 	err := dnsad.Authenticate(curpb.Adapterconfig.Dns["creds"], curpb.Adapterconfig.Dns["endpoint"])
+	failednames := make([]string, 0)
 	if err == nil {
 		st := "Authenticated!"
 		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES, Statustext: &st})
@@ -214,6 +235,7 @@ func (s *AutoVPNServer) Undo(in *pb.UndoRequest, ss pb.AutoVPN_UndoServer) error
 		err := dnsad.DelRecord(dnsadapters.DNSRecord{Domain: domain, Addr: domaddr})
 		if err != nil {
 			st := "Failed to delete " + domain + ": " + err.Error()
+			failednames = append(failednames, domain)
 			ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_DNS, Statustext: &st})
 			time.Sleep(1 * time.Second)
 		}
@@ -221,6 +243,11 @@ func (s *AutoVPNServer) Undo(in *pb.UndoRequest, ss pb.AutoVPN_UndoServer) error
 		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_DNS, Statustext: &st})
 	}
 	dnsad.CommitRecords()
+	if len(failednames) != 0 {
+		st := "Following DNS records failed to delete: " + strings.Join(failednames, ", ") + ". Manual intervention is likely needed"
+		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES, Statustext: &st})
+		time.Sleep(time.Millisecond * 2000)
+	}
 	ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES})
 	st := "Authenticating with " + curpb.Adapters.Routes + " route adapter..."
 	ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES, Statustext: &st})
@@ -231,24 +258,34 @@ func (s *AutoVPNServer) Undo(in *pb.UndoRequest, ss pb.AutoVPN_UndoServer) error
 		time.Sleep(time.Millisecond * 2000)
 		return nil
 	}
-	adok := routead.Authenticate(curpb.Adapterconfig.Routes["creds"], curpb.Adapterconfig.Routes["endpoint"])
-	if adok {
+	err = routead.Authenticate(curpb.Adapterconfig.Routes["creds"], curpb.Adapterconfig.Routes["endpoint"])
+	failedroutes := make([]string, 0)
+	if err == nil {
 		st := "Authenticated!"
 		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES, Statustext: &st})
 		time.Sleep(time.Millisecond * 2000)
 	} else {
-		st := "Failed to authenticate on " + curpb.Adapters.Routes + ". Check credentials!"
+		st := "Failed to authenticate on " + curpb.Adapters.Routes + ": " + err.Error()
 		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ERROR, Statustext: &st})
 		time.Sleep(time.Millisecond * 2000)
 		return nil
 	}
 	for _, ip := range s.playbookAddrs[curpb.Name] {
-		routead.DelRoute(routes.Route{Destination: ip, Gateway: "0.0.0.0", Interface: curpb.Interface})
+		err := routead.DelRoute(routes.Route{Destination: ip, Gateway: "0.0.0.0", Interface: curpb.Interface})
+		if err != nil {
+			failedroutes = append(failedroutes, ip)
+		}
 		st := "Unrouted " + ip
 		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES, Statustext: &st})
 	}
+	routead.SaveConfig()
 	st = "Finished"
 	ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_NOTIFY, Statustext: &st})
+	if len(failedroutes) != 0 {
+		st := "Following routes failed to delete: " + strings.Join(failedroutes, ", ") + ". Manual intervention is likely needed"
+		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES, Statustext: &st})
+		time.Sleep(time.Millisecond * 2000)
+	}
 	delete(s.playbookAddrs, curpb.Name)
 	delete(s.playbooksInstalled, curpb)
 	return nil
