@@ -23,8 +23,8 @@ var clear string = "\t\t\t\t\t\t"
 
 type AutoVPNServer struct {
 	pb.UnimplementedAutoVPNServer
-	playbooksInstalled map[*playbook.Playbook]bool // bool indicates if playbook was successfully applied.
-	playbookAddrs      map[string]map[string]string
+	playbooksInstalled map[*playbook.Playbook]bool  // bool indicates if playbook was successfully applied. TODO: Store in a real DB
+	playbookAddrs      map[string]map[string]string // TODO: Store in a real DB
 }
 
 func (s *AutoVPNServer) Apply(in *pb.ApplyRequest, ss pb.AutoVPN_ApplyServer) error {
@@ -133,9 +133,9 @@ func (s *AutoVPNServer) Apply(in *pb.ApplyRequest, ss pb.AutoVPN_ApplyServer) er
 		time.Sleep(time.Millisecond * 2000)
 		return nil
 	}
-	route_conflicts := make([]routes.Route, 0)
+	route_conflicts := make([]*routes.Route, 0)
 	for _, r := range cur_routes {
-		ip := strings.Split(r.Destination, "/")[0] // strip mask notation
+		ip := strings.Split(r.Destination, "/")[0] // strip mask notation if any
 		for _, newip := range dnsrecords {
 			if ip == newip && r.Interface == playbook.Interface {
 				route_conflicts = append(route_conflicts, r)
@@ -149,7 +149,7 @@ func (s *AutoVPNServer) Apply(in *pb.ApplyRequest, ss pb.AutoVPN_ApplyServer) er
 		st = "Removing conflicts..."
 		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ROUTES, Statustext: &st})
 		for _, r := range route_conflicts {
-			err := routead.DelRoute(r)
+			err := routead.DelRoute(*r)
 			if err != nil {
 				st := "Failed to delete a route " + r.Destination + ": " + err.Error()
 				ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ERROR, Statustext: &st})
@@ -158,7 +158,7 @@ func (s *AutoVPNServer) Apply(in *pb.ApplyRequest, ss pb.AutoVPN_ApplyServer) er
 		}
 	}
 	for h, ip := range dnsrecords {
-		err := routead.AddRoute(routes.Route{Destination: ip, Gateway: "0.0.0.0", Interface: playbook.Interface}, "[AutoVPN2] Playbook: "+playbook.Name+" Host: "+h)
+		err := routead.AddRoute(routes.Route{Destination: ip, Gateway: "0.0.0.0", Interface: playbook.Interface, Comment: "[AutoVPN2] Playbook: " + playbook.Name + " Host: " + h})
 		if err != nil {
 			st := "Failed to add a route " + ip + ": " + err.Error()
 			failedroutes = append(failedroutes, ip)
@@ -222,7 +222,7 @@ func (s *AutoVPNServer) Undo(in *pb.UndoRequest, ss pb.AutoVPN_UndoServer) error
 	failednames := make([]string, 0)
 	if err == nil {
 		st := "Authenticated!"
-		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES, Statustext: &st})
+		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_DNS, Statustext: &st})
 		time.Sleep(time.Millisecond * 2000)
 	} else {
 		st := "Failed to authenticate on " + curpb.Adapters.Dns + ". Check credentials! " + err.Error()
@@ -270,7 +270,32 @@ func (s *AutoVPNServer) Undo(in *pb.UndoRequest, ss pb.AutoVPN_UndoServer) error
 		time.Sleep(time.Millisecond * 2000)
 		return nil
 	}
-	for _, ip := range s.playbookAddrs[curpb.Name] {
+	// Try getting addrs from route addresses.
+	st = "Trying to get addresses from route addresses"
+	ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES, Statustext: &st})
+	time.Sleep(time.Millisecond * 500)
+	var addrs []string = make([]string, 0)
+	cur_routes, err := routead.GetRoutes()
+	if err != nil {
+		for _, ip := range s.playbookAddrs[curpb.Name] {
+			addrs = append(addrs, ip)
+		}
+		st := "Falling back to address cold storage!"
+		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES, Statustext: &st})
+		time.Sleep(time.Millisecond * 1500)
+	} else {
+		st := "Retrieved needed addresses from router adapter!"
+		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES, Statustext: &st})
+		time.Sleep(time.Millisecond * 1500)
+		for _, r := range cur_routes {
+			if strings.Contains(r.Comment, "AutoVPN2") {
+				if strings.Contains(r.Comment, curpb.Name) {
+					addrs = append(addrs, r.Destination)
+				}
+			}
+		}
+	}
+	for _, ip := range addrs {
 		err := routead.DelRoute(routes.Route{Destination: ip, Gateway: "0.0.0.0", Interface: curpb.Interface})
 		if err != nil {
 			failedroutes = append(failedroutes, ip)

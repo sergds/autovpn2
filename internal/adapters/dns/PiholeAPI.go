@@ -89,7 +89,10 @@ func (p *PiholeAPI) AddRecord(record DNSRecord) error {
 	if err != nil {
 		return err
 	}
-	errormsg, _ := respparsed.GetString("message")
+	errormsg, err := respparsed.GetString("message")
+	if err != nil {
+		fmt.Println("failed parsing status response")
+	}
 	if ok == nil && errormsg == "" {
 		return nil
 	}
@@ -102,9 +105,9 @@ func (p *PiholeAPI) DelRecord(record DNSRecord) error {
 	if err != nil {
 		return err
 	}
-	errormsg, _ := respparsed.GetString("message")
-	if ok == nil && errormsg == "" {
-		return nil
+	errormsg, err := respparsed.GetString("message")
+	if err != nil {
+		fmt.Println("failed parsing status response")
 	}
 	if ok == nil && errormsg == "" {
 		return nil
