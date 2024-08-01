@@ -67,17 +67,24 @@ func (p *PiholeAPI) Authenticate(creds string, endpoint string) error {
 func (p *PiholeAPI) GetRecords(dnstype string) []DNSRecord {
 	resp, ok := p.piholeRequest([]string{"customdns", "action=get"})
 	if ok != nil {
+		fmt.Println(ok.Error())
 		return nil
 	}
 	recs, err := jason.NewObjectFromBytes([]byte(resp))
 	if err != nil {
+		fmt.Println(err.Error())
 		return nil
 	}
-	recsarr, _ := recs.GetObjectArray("data")
+	recsarrval, err := recs.GetValueArray("data")
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
 	var finalrecords []DNSRecord
-	for _, rec := range recsarr {
-		d, _ := rec.GetString("0")
-		a, _ := rec.GetString("1")
+	for _, rec := range recsarrval {
+		arr, _ := rec.Array()
+		d, _ := arr[0].String()
+		a, _ := arr[1].String()
 		finalrecords = append(finalrecords, DNSRecord{Domain: d, Type: "A", Addr: net.ParseIP(a)})
 	}
 	return finalrecords

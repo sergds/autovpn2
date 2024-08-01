@@ -13,6 +13,7 @@ import (
 )
 
 func runApply(cl pb.AutoVPNClient, playbookpath string) {
+	var summary []string = make([]string, 0)
 	sp := fastansi.NewStatusPrinter()
 	sp.Status(2, color.YellowString("Applying playbook..."))
 	sp.Status(1, color.YellowString("Waiting for status..."))
@@ -45,6 +46,8 @@ func runApply(cl pb.AutoVPNClient, playbookpath string) {
 				sp.Status(1, color.BlueString(*status.Statustext))
 				continue
 			}
+		case pb.STATUS_PUSH_SUMMARY:
+			summary = append(summary, *status.Statustext)
 		}
 		if err != nil {
 			log.Fatalln(err.Error())
@@ -52,6 +55,11 @@ func runApply(cl pb.AutoVPNClient, playbookpath string) {
 		if status.Statustext != nil {
 			sp.Status(0, *status.Statustext)
 		}
+	}
+	fmt.Println()
+	fmt.Println("Operation Summary:")
+	for _, s := range summary {
+		fmt.Println(s)
 	}
 }
 

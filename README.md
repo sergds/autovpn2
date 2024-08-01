@@ -73,6 +73,6 @@ hosts: # List of hosts to route through VPN.
 - [X] DNS
 - [X] Try retrieving data from adapters for undo instead of it storing locally. (To avoid duplicate stray routes or dns records of different addresses)
 - [ ] Allow specifying raw IPs in playbook's hosts
-- [ ] Store server playbooks in persistient cache (File? (Key-value) DB?)
+- [X] Store server playbooks in persistient cache (File? (Key-value) DB?)
 - [ ] Auto-refreshing of playbook routes and DNS
 - [ ] Clean code
