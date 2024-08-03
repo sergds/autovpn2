@@ -7,6 +7,7 @@ import (
 
 	"github.com/sergds/autovpn2/internal"
 	"github.com/sergds/autovpn2/internal/client"
+	"github.com/sergds/autovpn2/internal/rpc"
 	"github.com/sergds/autovpn2/internal/server"
 	"github.com/urfave/cli/v2"
 )
@@ -24,7 +25,7 @@ func main() {
 				Usage:   "Apply local playbook to an autovpn environment.",
 				Action: func(ctx *cli.Context) error {
 					if ctx.NArg() != 0 {
-						client.Apply(ctx.Args().First())
+						client.Execute(rpc.TASK_APPLY, ctx.Args().Slice())
 						os.Exit(0)
 					} else {
 						fmt.Println("Please specify path to a playbook!")
@@ -37,7 +38,7 @@ func main() {
 				Aliases: []string{"l", "ls", "lis"},
 				Usage:   "List of applied playbooks on an autovpn server.",
 				Action: func(ctx *cli.Context) error {
-					client.List()
+					client.Execute(rpc.TASK_LIST, ctx.Args().Slice())
 					os.Exit(0)
 					return nil
 				},
@@ -51,7 +52,7 @@ func main() {
 						fmt.Println("Missing playbook name!")
 						os.Exit(0)
 					}
-					client.Undo(ctx.Args().First())
+					client.Execute(rpc.TASK_UNDO, ctx.Args().Slice())
 					os.Exit(0)
 					return nil
 				},

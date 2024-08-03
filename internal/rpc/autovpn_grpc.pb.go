@@ -22,9 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AutoVPNClient interface {
-	Apply(ctx context.Context, in *ApplyRequest, opts ...grpc.CallOption) (AutoVPN_ApplyClient, error)
-	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
-	Undo(ctx context.Context, in *UndoRequest, opts ...grpc.CallOption) (AutoVPN_UndoClient, error)
+	ExecuteTask(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (AutoVPN_ExecuteTaskClient, error)
 }
 
 type autoVPNClient struct {
@@ -35,12 +33,12 @@ func NewAutoVPNClient(cc grpc.ClientConnInterface) AutoVPNClient {
 	return &autoVPNClient{cc}
 }
 
-func (c *autoVPNClient) Apply(ctx context.Context, in *ApplyRequest, opts ...grpc.CallOption) (AutoVPN_ApplyClient, error) {
-	stream, err := c.cc.NewStream(ctx, &AutoVPN_ServiceDesc.Streams[0], "/AutoVPN/Apply", opts...)
+func (c *autoVPNClient) ExecuteTask(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (AutoVPN_ExecuteTaskClient, error) {
+	stream, err := c.cc.NewStream(ctx, &AutoVPN_ServiceDesc.Streams[0], "/AutoVPN/ExecuteTask", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &autoVPNApplyClient{stream}
+	x := &autoVPNExecuteTaskClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -50,58 +48,17 @@ func (c *autoVPNClient) Apply(ctx context.Context, in *ApplyRequest, opts ...grp
 	return x, nil
 }
 
-type AutoVPN_ApplyClient interface {
-	Recv() (*ApplyResponse, error)
+type AutoVPN_ExecuteTaskClient interface {
+	Recv() (*ExecuteUpdate, error)
 	grpc.ClientStream
 }
 
-type autoVPNApplyClient struct {
+type autoVPNExecuteTaskClient struct {
 	grpc.ClientStream
 }
 
-func (x *autoVPNApplyClient) Recv() (*ApplyResponse, error) {
-	m := new(ApplyResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *autoVPNClient) List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error) {
-	out := new(ListResponse)
-	err := c.cc.Invoke(ctx, "/AutoVPN/List", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *autoVPNClient) Undo(ctx context.Context, in *UndoRequest, opts ...grpc.CallOption) (AutoVPN_UndoClient, error) {
-	stream, err := c.cc.NewStream(ctx, &AutoVPN_ServiceDesc.Streams[1], "/AutoVPN/Undo", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &autoVPNUndoClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type AutoVPN_UndoClient interface {
-	Recv() (*UndoResponse, error)
-	grpc.ClientStream
-}
-
-type autoVPNUndoClient struct {
-	grpc.ClientStream
-}
-
-func (x *autoVPNUndoClient) Recv() (*UndoResponse, error) {
-	m := new(UndoResponse)
+func (x *autoVPNExecuteTaskClient) Recv() (*ExecuteUpdate, error) {
+	m := new(ExecuteUpdate)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -112,9 +69,7 @@ func (x *autoVPNUndoClient) Recv() (*UndoResponse, error) {
 // All implementations must embed UnimplementedAutoVPNServer
 // for forward compatibility
 type AutoVPNServer interface {
-	Apply(*ApplyRequest, AutoVPN_ApplyServer) error
-	List(context.Context, *ListRequest) (*ListResponse, error)
-	Undo(*UndoRequest, AutoVPN_UndoServer) error
+	ExecuteTask(*ExecuteRequest, AutoVPN_ExecuteTaskServer) error
 	mustEmbedUnimplementedAutoVPNServer()
 }
 
@@ -122,14 +77,8 @@ type AutoVPNServer interface {
 type UnimplementedAutoVPNServer struct {
 }
 
-func (UnimplementedAutoVPNServer) Apply(*ApplyRequest, AutoVPN_ApplyServer) error {
-	return status.Errorf(codes.Unimplemented, "method Apply not implemented")
-}
-func (UnimplementedAutoVPNServer) List(context.Context, *ListRequest) (*ListResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
-}
-func (UnimplementedAutoVPNServer) Undo(*UndoRequest, AutoVPN_UndoServer) error {
-	return status.Errorf(codes.Unimplemented, "method Undo not implemented")
+func (UnimplementedAutoVPNServer) ExecuteTask(*ExecuteRequest, AutoVPN_ExecuteTaskServer) error {
+	return status.Errorf(codes.Unimplemented, "method ExecuteTask not implemented")
 }
 func (UnimplementedAutoVPNServer) mustEmbedUnimplementedAutoVPNServer() {}
 
@@ -144,63 +93,24 @@ func RegisterAutoVPNServer(s grpc.ServiceRegistrar, srv AutoVPNServer) {
 	s.RegisterService(&AutoVPN_ServiceDesc, srv)
 }
 
-func _AutoVPN_Apply_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(ApplyRequest)
+func _AutoVPN_ExecuteTask_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ExecuteRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(AutoVPNServer).Apply(m, &autoVPNApplyServer{stream})
+	return srv.(AutoVPNServer).ExecuteTask(m, &autoVPNExecuteTaskServer{stream})
 }
 
-type AutoVPN_ApplyServer interface {
-	Send(*ApplyResponse) error
+type AutoVPN_ExecuteTaskServer interface {
+	Send(*ExecuteUpdate) error
 	grpc.ServerStream
 }
 
-type autoVPNApplyServer struct {
+type autoVPNExecuteTaskServer struct {
 	grpc.ServerStream
 }
 
-func (x *autoVPNApplyServer) Send(m *ApplyResponse) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _AutoVPN_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AutoVPNServer).List(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/AutoVPN/List",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AutoVPNServer).List(ctx, req.(*ListRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AutoVPN_Undo_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(UndoRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(AutoVPNServer).Undo(m, &autoVPNUndoServer{stream})
-}
-
-type AutoVPN_UndoServer interface {
-	Send(*UndoResponse) error
-	grpc.ServerStream
-}
-
-type autoVPNUndoServer struct {
-	grpc.ServerStream
-}
-
-func (x *autoVPNUndoServer) Send(m *UndoResponse) error {
+func (x *autoVPNExecuteTaskServer) Send(m *ExecuteUpdate) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -210,21 +120,11 @@ func (x *autoVPNUndoServer) Send(m *UndoResponse) error {
 var AutoVPN_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "AutoVPN",
 	HandlerType: (*AutoVPNServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "List",
-			Handler:    _AutoVPN_List_Handler,
-		},
-	},
+	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Apply",
-			Handler:       _AutoVPN_Apply_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "Undo",
-			Handler:       _AutoVPN_Undo_Handler,
+			StreamName:    "ExecuteTask",
+			Handler:       _AutoVPN_ExecuteTask_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -20,14 +20,17 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ListRequest struct {
+type ExecuteRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
+
+	Operation string   `protobuf:"bytes,1,opt,name=operation,proto3" json:"operation,omitempty"`
+	Argv      []string `protobuf:"bytes,2,rep,name=argv,proto3" json:"argv,omitempty"`
 }
 
-func (x *ListRequest) Reset() {
-	*x = ListRequest{}
+func (x *ExecuteRequest) Reset() {
+	*x = ExecuteRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_internal_rpc_autovpn_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -35,13 +38,13 @@ func (x *ListRequest) Reset() {
 	}
 }
 
-func (x *ListRequest) String() string {
+func (x *ExecuteRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListRequest) ProtoMessage() {}
+func (*ExecuteRequest) ProtoMessage() {}
 
-func (x *ListRequest) ProtoReflect() protoreflect.Message {
+func (x *ExecuteRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_internal_rpc_autovpn_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -53,21 +56,37 @@ func (x *ListRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListRequest.ProtoReflect.Descriptor instead.
-func (*ListRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ExecuteRequest.ProtoReflect.Descriptor instead.
+func (*ExecuteRequest) Descriptor() ([]byte, []int) {
 	return file_internal_rpc_autovpn_proto_rawDescGZIP(), []int{0}
 }
 
-type ListResponse struct {
+func (x *ExecuteRequest) GetOperation() string {
+	if x != nil {
+		return x.Operation
+	}
+	return ""
+}
+
+func (x *ExecuteRequest) GetArgv() []string {
+	if x != nil {
+		return x.Argv
+	}
+	return nil
+}
+
+type ExecuteUpdate struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Playbooks []string `protobuf:"bytes,1,rep,name=playbooks,proto3" json:"playbooks,omitempty"`
+	Statecode string  `protobuf:"bytes,1,opt,name=statecode,proto3" json:"statecode,omitempty"`
+	Statetext *string `protobuf:"bytes,2,opt,name=statetext,proto3,oneof" json:"statetext,omitempty"`
+	Opdesc    *string `protobuf:"bytes,3,opt,name=opdesc,proto3,oneof" json:"opdesc,omitempty"` // custom operation description
 }
 
-func (x *ListResponse) Reset() {
-	*x = ListResponse{}
+func (x *ExecuteUpdate) Reset() {
+	*x = ExecuteUpdate{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_internal_rpc_autovpn_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -75,13 +94,13 @@ func (x *ListResponse) Reset() {
 	}
 }
 
-func (x *ListResponse) String() string {
+func (x *ExecuteUpdate) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListResponse) ProtoMessage() {}
+func (*ExecuteUpdate) ProtoMessage() {}
 
-func (x *ListResponse) ProtoReflect() protoreflect.Message {
+func (x *ExecuteUpdate) ProtoReflect() protoreflect.Message {
 	mi := &file_internal_rpc_autovpn_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -93,218 +112,28 @@ func (x *ListResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListResponse.ProtoReflect.Descriptor instead.
-func (*ListResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ExecuteUpdate.ProtoReflect.Descriptor instead.
+func (*ExecuteUpdate) Descriptor() ([]byte, []int) {
 	return file_internal_rpc_autovpn_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ListResponse) GetPlaybooks() []string {
+func (x *ExecuteUpdate) GetStatecode() string {
 	if x != nil {
-		return x.Playbooks
-	}
-	return nil
-}
-
-type ApplyRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Playbook string `protobuf:"bytes,1,opt,name=playbook,proto3" json:"playbook,omitempty"`
-}
-
-func (x *ApplyRequest) Reset() {
-	*x = ApplyRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_rpc_autovpn_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ApplyRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ApplyRequest) ProtoMessage() {}
-
-func (x *ApplyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_rpc_autovpn_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ApplyRequest.ProtoReflect.Descriptor instead.
-func (*ApplyRequest) Descriptor() ([]byte, []int) {
-	return file_internal_rpc_autovpn_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *ApplyRequest) GetPlaybook() string {
-	if x != nil {
-		return x.Playbook
+		return x.Statecode
 	}
 	return ""
 }
 
-type ApplyResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Status     int32   `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	Statustext *string `protobuf:"bytes,2,opt,name=statustext,proto3,oneof" json:"statustext,omitempty"`
-}
-
-func (x *ApplyResponse) Reset() {
-	*x = ApplyResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_rpc_autovpn_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ApplyResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ApplyResponse) ProtoMessage() {}
-
-func (x *ApplyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_rpc_autovpn_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ApplyResponse.ProtoReflect.Descriptor instead.
-func (*ApplyResponse) Descriptor() ([]byte, []int) {
-	return file_internal_rpc_autovpn_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *ApplyResponse) GetStatus() int32 {
-	if x != nil {
-		return x.Status
-	}
-	return 0
-}
-
-func (x *ApplyResponse) GetStatustext() string {
-	if x != nil && x.Statustext != nil {
-		return *x.Statustext
+func (x *ExecuteUpdate) GetStatetext() string {
+	if x != nil && x.Statetext != nil {
+		return *x.Statetext
 	}
 	return ""
 }
 
-type UndoRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Playbookname string `protobuf:"bytes,1,opt,name=playbookname,proto3" json:"playbookname,omitempty"`
-}
-
-func (x *UndoRequest) Reset() {
-	*x = UndoRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_rpc_autovpn_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *UndoRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UndoRequest) ProtoMessage() {}
-
-func (x *UndoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_rpc_autovpn_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UndoRequest.ProtoReflect.Descriptor instead.
-func (*UndoRequest) Descriptor() ([]byte, []int) {
-	return file_internal_rpc_autovpn_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *UndoRequest) GetPlaybookname() string {
-	if x != nil {
-		return x.Playbookname
-	}
-	return ""
-}
-
-type UndoResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Status     int32   `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	Statustext *string `protobuf:"bytes,2,opt,name=statustext,proto3,oneof" json:"statustext,omitempty"`
-}
-
-func (x *UndoResponse) Reset() {
-	*x = UndoResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_rpc_autovpn_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *UndoResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UndoResponse) ProtoMessage() {}
-
-func (x *UndoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_rpc_autovpn_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UndoResponse.ProtoReflect.Descriptor instead.
-func (*UndoResponse) Descriptor() ([]byte, []int) {
-	return file_internal_rpc_autovpn_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *UndoResponse) GetStatus() int32 {
-	if x != nil {
-		return x.Status
-	}
-	return 0
-}
-
-func (x *UndoResponse) GetStatustext() string {
-	if x != nil && x.Statustext != nil {
-		return *x.Statustext
+func (x *ExecuteUpdate) GetOpdesc() string {
+	if x != nil && x.Opdesc != nil {
+		return *x.Opdesc
 	}
 	return ""
 }
@@ -313,40 +142,27 @@ var File_internal_rpc_autovpn_proto protoreflect.FileDescriptor
 
 var file_internal_rpc_autovpn_proto_rawDesc = []byte{
 	0x0a, 0x1a, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x72, 0x70, 0x63, 0x2f, 0x61,
-	0x75, 0x74, 0x6f, 0x76, 0x70, 0x6e, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x0d, 0x0a, 0x0b,
-	0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x2c, 0x0a, 0x0c, 0x4c,
-	0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1c, 0x0a, 0x09, 0x70,
-	0x6c, 0x61, 0x79, 0x62, 0x6f, 0x6f, 0x6b, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x09,
-	0x70, 0x6c, 0x61, 0x79, 0x62, 0x6f, 0x6f, 0x6b, 0x73, 0x22, 0x2a, 0x0a, 0x0c, 0x41, 0x70, 0x70,
-	0x6c, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1a, 0x0a, 0x08, 0x70, 0x6c, 0x61,
-	0x79, 0x62, 0x6f, 0x6f, 0x6b, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x70, 0x6c, 0x61,
-	0x79, 0x62, 0x6f, 0x6f, 0x6b, 0x22, 0x5b, 0x0a, 0x0d, 0x41, 0x70, 0x70, 0x6c, 0x79, 0x52, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x23,
-	0x0a, 0x0a, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x74, 0x65, 0x78, 0x74, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x09, 0x48, 0x00, 0x52, 0x0a, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x74, 0x65, 0x78, 0x74,
-	0x88, 0x01, 0x01, 0x42, 0x0d, 0x0a, 0x0b, 0x5f, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x74, 0x65,
-	0x78, 0x74, 0x22, 0x31, 0x0a, 0x0b, 0x55, 0x6e, 0x64, 0x6f, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x12, 0x22, 0x0a, 0x0c, 0x70, 0x6c, 0x61, 0x79, 0x62, 0x6f, 0x6f, 0x6b, 0x6e, 0x61, 0x6d,
-	0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x70, 0x6c, 0x61, 0x79, 0x62, 0x6f, 0x6f,
-	0x6b, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x5a, 0x0a, 0x0c, 0x55, 0x6e, 0x64, 0x6f, 0x52, 0x65, 0x73,
-	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x23, 0x0a,
-	0x0a, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x74, 0x65, 0x78, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28,
-	0x09, 0x48, 0x00, 0x52, 0x0a, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x74, 0x65, 0x78, 0x74, 0x88,
-	0x01, 0x01, 0x42, 0x0d, 0x0a, 0x0b, 0x5f, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x74, 0x65, 0x78,
-	0x74, 0x32, 0x7f, 0x0a, 0x07, 0x41, 0x75, 0x74, 0x6f, 0x56, 0x50, 0x4e, 0x12, 0x28, 0x0a, 0x05,
-	0x41, 0x70, 0x70, 0x6c, 0x79, 0x12, 0x0d, 0x2e, 0x41, 0x70, 0x70, 0x6c, 0x79, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x1a, 0x0e, 0x2e, 0x41, 0x70, 0x70, 0x6c, 0x79, 0x52, 0x65, 0x73, 0x70,
-	0x6f, 0x6e, 0x73, 0x65, 0x30, 0x01, 0x12, 0x23, 0x0a, 0x04, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x0c,
-	0x2e, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0d, 0x2e, 0x4c,
-	0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x25, 0x0a, 0x04, 0x55,
-	0x6e, 0x64, 0x6f, 0x12, 0x0c, 0x2e, 0x55, 0x6e, 0x64, 0x6f, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x0d, 0x2e, 0x55, 0x6e, 0x64, 0x6f, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x30, 0x01, 0x42, 0x29, 0x5a, 0x27, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d,
-	0x2f, 0x73, 0x65, 0x72, 0x67, 0x64, 0x73, 0x2f, 0x61, 0x75, 0x74, 0x6f, 0x76, 0x70, 0x6e, 0x32,
-	0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x72, 0x70, 0x63, 0x62, 0x06, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x75, 0x74, 0x6f, 0x76, 0x70, 0x6e, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x42, 0x0a, 0x0e,
+	0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1c,
+	0x0a, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x12, 0x0a, 0x04,
+	0x61, 0x72, 0x67, 0x76, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x04, 0x61, 0x72, 0x67, 0x76,
+	0x22, 0x86, 0x01, 0x0a, 0x0d, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x65, 0x55, 0x70, 0x64, 0x61,
+	0x74, 0x65, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x74, 0x61, 0x74, 0x65, 0x63, 0x6f, 0x64, 0x65, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x74, 0x61, 0x74, 0x65, 0x63, 0x6f, 0x64, 0x65,
+	0x12, 0x21, 0x0a, 0x09, 0x73, 0x74, 0x61, 0x74, 0x65, 0x74, 0x65, 0x78, 0x74, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x09, 0x73, 0x74, 0x61, 0x74, 0x65, 0x74, 0x65, 0x78, 0x74,
+	0x88, 0x01, 0x01, 0x12, 0x1b, 0x0a, 0x06, 0x6f, 0x70, 0x64, 0x65, 0x73, 0x63, 0x18, 0x03, 0x20,
+	0x01, 0x28, 0x09, 0x48, 0x01, 0x52, 0x06, 0x6f, 0x70, 0x64, 0x65, 0x73, 0x63, 0x88, 0x01, 0x01,
+	0x42, 0x0c, 0x0a, 0x0a, 0x5f, 0x73, 0x74, 0x61, 0x74, 0x65, 0x74, 0x65, 0x78, 0x74, 0x42, 0x09,
+	0x0a, 0x07, 0x5f, 0x6f, 0x70, 0x64, 0x65, 0x73, 0x63, 0x32, 0x3b, 0x0a, 0x07, 0x41, 0x75, 0x74,
+	0x6f, 0x56, 0x50, 0x4e, 0x12, 0x30, 0x0a, 0x0b, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x65, 0x54,
+	0x61, 0x73, 0x6b, 0x12, 0x0f, 0x2e, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x65, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x1a, 0x0e, 0x2e, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x65, 0x55, 0x70,
+	0x64, 0x61, 0x74, 0x65, 0x30, 0x01, 0x42, 0x29, 0x5a, 0x27, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62,
+	0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x73, 0x65, 0x72, 0x67, 0x64, 0x73, 0x2f, 0x61, 0x75, 0x74, 0x6f,
+	0x76, 0x70, 0x6e, 0x32, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x72, 0x70,
+	0x63, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -361,24 +177,16 @@ func file_internal_rpc_autovpn_proto_rawDescGZIP() []byte {
 	return file_internal_rpc_autovpn_proto_rawDescData
 }
 
-var file_internal_rpc_autovpn_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_internal_rpc_autovpn_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_internal_rpc_autovpn_proto_goTypes = []interface{}{
-	(*ListRequest)(nil),   // 0: ListRequest
-	(*ListResponse)(nil),  // 1: ListResponse
-	(*ApplyRequest)(nil),  // 2: ApplyRequest
-	(*ApplyResponse)(nil), // 3: ApplyResponse
-	(*UndoRequest)(nil),   // 4: UndoRequest
-	(*UndoResponse)(nil),  // 5: UndoResponse
+	(*ExecuteRequest)(nil), // 0: ExecuteRequest
+	(*ExecuteUpdate)(nil),  // 1: ExecuteUpdate
 }
 var file_internal_rpc_autovpn_proto_depIdxs = []int32{
-	2, // 0: AutoVPN.Apply:input_type -> ApplyRequest
-	0, // 1: AutoVPN.List:input_type -> ListRequest
-	4, // 2: AutoVPN.Undo:input_type -> UndoRequest
-	3, // 3: AutoVPN.Apply:output_type -> ApplyResponse
-	1, // 4: AutoVPN.List:output_type -> ListResponse
-	5, // 5: AutoVPN.Undo:output_type -> UndoResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	0, // 0: AutoVPN.ExecuteTask:input_type -> ExecuteRequest
+	1, // 1: AutoVPN.ExecuteTask:output_type -> ExecuteUpdate
+	1, // [1:2] is the sub-list for method output_type
+	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -391,7 +199,7 @@ func file_internal_rpc_autovpn_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_internal_rpc_autovpn_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ListRequest); i {
+			switch v := v.(*ExecuteRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -403,55 +211,7 @@ func file_internal_rpc_autovpn_proto_init() {
 			}
 		}
 		file_internal_rpc_autovpn_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ListResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_internal_rpc_autovpn_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ApplyRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_internal_rpc_autovpn_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ApplyResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_internal_rpc_autovpn_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UndoRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_internal_rpc_autovpn_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UndoResponse); i {
+			switch v := v.(*ExecuteUpdate); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -463,15 +223,14 @@ func file_internal_rpc_autovpn_proto_init() {
 			}
 		}
 	}
-	file_internal_rpc_autovpn_proto_msgTypes[3].OneofWrappers = []interface{}{}
-	file_internal_rpc_autovpn_proto_msgTypes[5].OneofWrappers = []interface{}{}
+	file_internal_rpc_autovpn_proto_msgTypes[1].OneofWrappers = []interface{}{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_internal_rpc_autovpn_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

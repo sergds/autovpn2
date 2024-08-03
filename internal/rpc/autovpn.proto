@@ -2,32 +2,16 @@ syntax = "proto3";
 option go_package = "github.com/sergds/autovpn2/internal/rpc";
 
 service AutoVPN {
-    rpc Apply (ApplyRequest) returns (stream ApplyResponse);
-    rpc List (ListRequest) returns (ListResponse);
-    rpc Undo (UndoRequest) returns (stream UndoResponse);
+    rpc ExecuteTask (ExecuteRequest) returns (stream ExecuteUpdate);
 }
 
-message ListRequest {
+message ExecuteRequest {
+    string operation = 1;
+    repeated string argv = 2;
 }
 
-message ListResponse {
-    repeated string playbooks = 1;
-}
-
-message ApplyRequest {
-    string playbook = 1;
-}
-
-message ApplyResponse {
-    int32 status = 1;
-    optional string statustext = 2;
-}
-
-message UndoRequest {
-    string playbookname = 1;
-}
-
-message UndoResponse {
-    int32 status = 1;
-    optional string statustext = 2;
+message ExecuteUpdate {
+    string statecode = 1;
+    optional string statetext = 2;
+    optional string opdesc = 3; // custom operation description
 }
