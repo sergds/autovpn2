@@ -78,18 +78,51 @@ func (*AutoVPNServer) reportStatus(ss pb.AutoVPN_ExecuteTaskServer, state string
 func (s *AutoVPNServer) ExecuteTask(in *pb.ExecuteRequest, ss pb.AutoVPN_ExecuteTaskServer) error {
 	s.reportStatus(ss, pb.STEP_NOTIFY, "Building Executor")
 	var ex *executor.Executor = executor.NewExecutor()
-	switch in.Operation {
+	switch in.Operation { // Build Executor
 	case pb.TASK_LIST:
-		ex.AddStep(executor.NewStep(pb.STEP_LIST, s.List))
+		ex.AddStep(executor.NewStep(pb.STEP_LIST, s.StepList))
+	case pb.TASK_APPLY:
+		{
+			ex.AddStep(executor.NewStep("prep_ctx", func(updates chan *executor.ExecutorUpdate, ctx context.Context) context.Context {
+				curpb, err := playbook.Parse(in.Argv[0])
+				if err != nil {
+					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Failed to parse playbook!"}
+					return ctx
+				}
+				pbooks := GetAllPlaybooksFromDB(s.playbookDB)
+				for pname, pbook := range pbooks {
+					if curpb.Name == pname && pbook.GetInstallState() {
+						updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "There is already a playbook named " + curpb.Name + "! Undo it first!"}
+						return ctx
+					}
+				}
+				if !curpb.Lock("Apply") {
+					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Unexpected lock on fresh playbook! (reason: " + curpb.GetLockReason() + ")"}
+					return ctx
+				}
+				err = UpdatePlaybookDB(s.playbookDB, curpb)
+				if err != nil {
+					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Failed adding playbook to db: " + err.Error() + ")"}
+					return ctx
+				}
+				ctx = context.WithValue(ctx, "playbook", curpb)
+				return ctx
+			}))
+			ex.AddStep(executor.NewStep(pb.STEP_FETCHIP, s.StepFetchIPs))
+			ex.AddStep(executor.NewStep(pb.STEP_DNS, s.StepApplyDNS))
+			ex.AddStep(executor.NewStep(pb.STEP_DNS, s.StepUpdatePlaybook))
+			ex.AddStep(executor.NewStep(pb.STEP_ROUTES, s.StepApplyRoutes))
+			ex.AddStep(executor.NewStep(pb.STEP_ROUTES, s.StepFinalizePlaybook)) // "finalize" here - set status as installed
+		}
 	default:
 		s.reportStatus(ss, pb.STEP_ERROR, "Failed to build executor: task doesn't exist")
 		return nil
 	}
-	if ex != nil {
-		ex.Start()
+	if ex != nil { // Run & Report
+		c := make(chan *executor.ExecutorUpdate)
+		ex.Start(c)
 		var err error
 		for err == nil && ss.Context().Err() == nil {
-			c := make(chan *executor.ExecutorUpdate)
 			eupdctx, cancel := context.WithCancel(context.Background())
 			go func() {
 				for eupdctx.Err() == nil {
@@ -97,7 +130,26 @@ func (s *AutoVPNServer) ExecuteTask(in *pb.ExecuteRequest, ss pb.AutoVPN_Execute
 					s.reportStatus(ss, upd.CurrentStep, upd.StepMessage)
 				}
 			}()
-			err = ex.Tick(c)
+			err = ex.Tick()
+			if err != nil {
+				if err.Error() == executor.ERR_FINISHED || err.Error() == executor.ERR_NOTSTART {
+					cancel()
+					break
+				} else {
+					log.Fatalln(err)
+				}
+			}
+			err = ex.GetLastError()
+			if err != nil {
+				if err.Error() == executor.ERR_FINISHED || err.Error() == executor.ERR_NOTSTART {
+					cancel()
+					break
+				} else {
+					// Otherwise this error is from a step, let the pump process that
+					err = nil
+					time.Sleep(time.Millisecond * 10)
+				}
+			}
 			cancel()
 			time.Sleep(time.Millisecond * 10)
 		}
@@ -112,190 +164,6 @@ func (s *AutoVPNServer) ExecuteTask(in *pb.ExecuteRequest, ss pb.AutoVPN_Execute
 }
 
 /*
-	func (s *AutoVPNServer) Apply(in *pb.ApplyRequest, ss pb.AutoVPN_ApplyServer) error {
-		curpb, err := playbook.Parse(in.GetPlaybook())
-		if err != nil {
-			st := "Failed to parse playbook! " + err.Error()
-			ss.Send(&pb.ApplyResponse{Status: pb.STATUS_ERROR, Statustext: &st})
-			return nil
-		}
-		pbooks := GetAllPlaybooksFromDB(s.playbookDB)
-		for pname, pbook := range pbooks {
-			if curpb.Name == pname && pbook.GetInstallState() {
-				s.reportStatus(ss, "There is already a playbook named "+curpb.Name+"! Undo it first!", pb.STATUS_ERROR)
-				return nil
-			}
-		}
-		if !curpb.Lock("Apply") {
-			s.reportStatus(ss, "Unexpected lock on fresh playbook! (reason: "+curpb.GetLockReason()+")", pb.STATUS_ERROR)
-			return nil
-		}
-		err = UpdatePlaybookDB(s.playbookDB, curpb)
-		if err != nil {
-			s.reportStatus(ss, "Failed adding playbook to db: "+err.Error(), pb.STATUS_ERROR)
-			return nil
-		}
-		ss.Send(&pb.ApplyResponse{Status: pb.STATUS_FETCHIP})
-		dnsrecords := s.FetchIPs(curpb, ss)
-		if curpb.Custom != nil {
-			for h, ip := range curpb.Custom {
-				dnsrecords[h] = ip
-			}
-		}
-		curpb.PlaybookAddrs = dnsrecords
-		err = UpdatePlaybookDB(s.playbookDB, curpb)
-		if err != nil {
-			s.reportStatus(ss, "Failed updating playbook in db: "+err.Error(), pb.STATUS_ERROR)
-			return nil
-		}
-		s.reportStatus(ss, "Authenticating with DNS Adapter...", pb.STATUS_DNS)
-		notok, err := s.ApplyDNS(curpb, ss, dnsrecords)
-		if notok {
-			return err
-		}
-		// Since the first change has been commited, the playbook is now deemed "installed"
-		err = UpdatePlaybookDB(s.playbookDB, curpb)
-		if err != nil {
-			s.reportStatus(ss, "Failed updating playbook in db: "+err.Error(), pb.STATUS_ERROR)
-			return nil
-		}
-		s.reportStatus(ss, "Authenticating with "+curpb.Adapters.Routes+" route adapter...", pb.STATUS_ROUTES)
-		failedroutes, notok, returnValue := s.ApplyRoutes(curpb, ss, dnsrecords)
-		if notok {
-			return returnValue
-		}
-		curpb.Unlock()
-		err = UpdatePlaybookDB(s.playbookDB, curpb)
-		if err != nil {
-			s.reportStatus(ss, "Failed updating playbook in db: "+err.Error(), pb.STATUS_ERROR)
-			return nil
-		}
-		s.reportStatus(ss, "Finished", pb.STATUS_PUSH_SUMMARY)
-
-		if len(failedroutes) != 0 {
-			st := "Following Routes failed to add: " + strings.Join(failedroutes, ", ") + ". Manual intervention is likely needed"
-			ss.Send(&pb.ApplyResponse{Status: pb.STATUS_PUSH_SUMMARY, Statustext: &st})
-		}
-		return nil
-	}
-
-	func (s *AutoVPNServer) ApplyRoutes(curpb *playbook.Playbook, ss pb.AutoVPN_ApplyServer, dnsrecords map[string]string) ([]string, bool, error) {
-		var routead routes.RouteAdapter = routes.NewRouteAdapter(curpb.Adapters.Routes)
-		failedroutes := make([]string, 0)
-		if routead == nil {
-			s.reportStatus(ss, "Failed to create route adapter "+curpb.Adapters.Routes, pb.STATUS_ERROR)
-			time.Sleep(time.Millisecond * 2000)
-			return nil, true, nil
-		}
-		err := routead.Authenticate(curpb.Adapterconfig.Routes["creds"], curpb.Adapterconfig.Routes["endpoint"])
-		if err == nil {
-			s.reportStatus(ss, "Authenticated!", pb.STATUS_ROUTES)
-			time.Sleep(time.Millisecond * 2000)
-		} else {
-			s.reportStatus(ss, "Failed to authenticate on "+curpb.Adapters.Routes+": "+err.Error(), pb.STATUS_ERROR)
-			time.Sleep(time.Millisecond * 2000)
-			return nil, true, nil
-		}
-		cur_routes, err := routead.GetRoutes()
-		if err != nil {
-			s.reportStatus(ss, "Failed to get routes from "+curpb.Adapters.Routes+": "+err.Error(), pb.STATUS_ERROR)
-			time.Sleep(time.Millisecond * 2000)
-			return nil, true, nil
-		}
-		route_conflicts := make([]*routes.Route, 0)
-		for _, r := range cur_routes {
-			ip := strings.Split(r.Destination, "/")[0]
-			for _, newip := range dnsrecords {
-				if ip == newip && r.Interface == curpb.Interface {
-					route_conflicts = append(route_conflicts, r)
-				}
-			}
-		}
-		if len(route_conflicts) != 0 {
-			s.reportStatus(ss, "There are conflicts! The conflicting routes will be recreated!", pb.STATUS_ROUTES)
-			time.Sleep(time.Millisecond * 2000)
-			s.reportStatus(ss, "Removing conflicts...", pb.STATUS_ROUTES)
-			for _, r := range route_conflicts {
-				err := routead.DelRoute(*r)
-				if err != nil {
-					s.reportStatus(ss, "Failed to delete a route "+r.Destination+": "+err.Error(), pb.STATUS_ERROR)
-					return nil, true, nil
-				}
-			}
-		}
-		for h, ip := range dnsrecords {
-			err := routead.AddRoute(routes.Route{Destination: ip, Gateway: "0.0.0.0", Interface: curpb.Interface, Comment: "[AutoVPN2] Playbook: " + curpb.Name + " Host: " + h})
-			if err != nil {
-				s.reportStatus(ss, "Failed to add a route "+ip+": "+err.Error(), pb.STATUS_PUSH_SUMMARY)
-				failedroutes = append(failedroutes, ip)
-				continue
-			}
-			s.reportStatus(ss, "Routed "+ip+"\t->\t"+curpb.Interface, pb.STATUS_ROUTES)
-		}
-		s.reportStatus(ss, "Saving changes", pb.STATUS_NOTIFY)
-		routead.SaveConfig()
-		return failedroutes, false, nil
-	}
-
-	func (s *AutoVPNServer) ApplyDNS(curpb *playbook.Playbook, ss pb.AutoVPN_ApplyServer, dnsrecords map[string]string) (bool, error) {
-		var dnsad dnsadapters.DNSAdapter = dnsadapters.NewDNSAdapter(curpb.Adapters.Dns)
-		failednames := make([]string, 0)
-		if err := dnsad.Authenticate(curpb.Adapterconfig.Dns["creds"], curpb.Adapterconfig.Dns["endpoint"]); err == nil {
-			s.reportStatus(ss, "Authenticated!", pb.STATUS_DNS)
-			time.Sleep(1 * time.Second)
-		} else {
-			s.reportStatus(ss, "Unauthorized!", pb.STATUS_ERROR)
-			time.Sleep(1 * time.Second)
-			return true, nil
-		}
-		for host, ip := range dnsrecords {
-			ipaddr := net.ParseIP(ip)
-			err := dnsad.AddRecord(dnsadapters.DNSRecord{Domain: host, Addr: ipaddr, Type: "A"})
-			if err != nil {
-				s.reportStatus(ss, "Failed to add "+host+"\tIN\tA\t"+ip+": "+err.Error(), pb.STATUS_ERROR)
-				failednames = append(failednames, host)
-				return true, nil
-			}
-			curpb.SetInstallState(true)
-			st := "Added " + host + "\tIN\tA\t" + ip
-			ss.Send(&pb.ApplyResponse{Status: pb.STATUS_DNS, Statustext: &st})
-		}
-		dnsad.CommitRecords()
-		if len(failednames) != 0 {
-			st := "Following DNS records failed to add: " + strings.Join(failednames, ", ") + ". Manual intervention is likely needed"
-			ss.Send(&pb.ApplyResponse{Status: pb.STATUS_PUSH_SUMMARY, Statustext: &st})
-		}
-		return false, nil
-	}
-
-	func (s *AutoVPNServer) FetchIPs(curpb *playbook.Playbook, ss pb.AutoVPN_ApplyServer) map[string]string {
-		var dnsrecords map[string]string = make(map[string]string)
-		for _, host := range curpb.Hosts {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			c := doh.Use(doh.CloudflareProvider)
-			resp, err := c.Query(ctx, dns.Domain(host), dns.TypeA)
-			answ := ""
-			for _, a := range resp.Answer {
-				if a.Type == 1 {
-					answ = a.Data
-				}
-			}
-			if err != nil {
-				s.reportStatus(ss, "Failed to resolve domain "+host+"! "+err.Error(), pb.STATUS_PUSH_SUMMARY)
-				continue
-			}
-			if answ != "" {
-				dnsrecords[host] = answ
-				s.reportStatus(ss, "Resolved "+host+"\tIN\tA\t"+answ, pb.STATUS_FETCHIP)
-			} else {
-				s.reportStatus(ss, "Failed getting INET Address of "+host+"!", pb.STATUS_PUSH_SUMMARY)
-				continue
-			}
-		}
-		return dnsrecords
-	}
-
 	func (*AutoVPNServer) reportStatus(ss pb.AutoVPN_ApplyServer, msg string, status int32) {
 		st := msg
 		ss.Send(&pb.ApplyResponse{Status: status, Statustext: &st})

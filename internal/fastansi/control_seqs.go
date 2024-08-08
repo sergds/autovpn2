@@ -17,3 +17,8 @@ func EraseLine() {
 func CR() {
 	fmt.Print("\x1b[0E")
 }
+
+// ANSI Select Graphic Rendition subset
+func SGR(subset string) {
+	fmt.Print("\x1b[" + subset + "m")
+}

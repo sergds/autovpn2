@@ -14,6 +14,9 @@ import (
 
 // Implementation of DNS Adapter for Pi-hole web API.
 // SergDS (C) 2024
+// Adapter config:
+// pihole_apikey -- Api key for pihole instance
+// pihole_server -- Instance IP address
 type PiholeAPI struct {
 	apikey   string
 	endpoint string
@@ -53,9 +56,9 @@ func (p *PiholeAPI) piholeRequest(args []string) (string, error) {
 	return string(reqb), nil
 }
 
-func (p *PiholeAPI) Authenticate(creds string, endpoint string) error {
-	p.apikey = creds
-	p.endpoint = endpoint
+func (p *PiholeAPI) Authenticate(conf map[string]string) error {
+	p.apikey = conf["pihole_apikey"]
+	p.endpoint = conf["pihole_server"]
 	resp, ok := p.piholeRequest([]string{"customdns"}) // Use customdns command from base api to check auth token
 	if ok != nil || resp == "Not authorized!" {        // Checking response string, because status code will be 200, even if it fails.
 		fmt.Println(resp)

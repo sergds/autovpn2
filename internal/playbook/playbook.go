@@ -1,8 +1,6 @@
 package playbook
 
 import (
-	"sync"
-
 	"gopkg.in/yaml.v3"
 )
 
@@ -21,9 +19,8 @@ type Playbook struct {
 	Custom        map[string]string `yaml:",omitempty"`
 	PlaybookAddrs map[string]string `yaml:",omitempty"` // Used for undoing, auto-refresh
 	Installed     bool              `yaml:",omitempty"`
-	// Internal crap from now on
-	busymtx    sync.Mutex
-	busyreason string
+	Busy          bool              `yaml:",omitempty"`
+	Busyreason    string            `yaml:",omitempty"`
 }
 
 func Parse(pbyaml string) (*Playbook, error) {
@@ -36,17 +33,21 @@ func Parse(pbyaml string) (*Playbook, error) {
 }
 
 func (pb *Playbook) Lock(reason string) bool {
-	pb.busyreason = reason
-	return pb.busymtx.TryLock()
+	pb.Busyreason = reason
+	if pb.Busy {
+		return false
+	}
+	pb.Busy = true
+	return pb.Busy
 }
 
 func (pb *Playbook) Unlock() {
-	pb.busyreason = ""
-	pb.busymtx.Unlock()
+	pb.Busyreason = ""
+	pb.Busy = false
 }
 
 func (pb *Playbook) GetLockReason() string {
-	return pb.busyreason
+	return pb.Busyreason
 }
 
 func (pb *Playbook) SetInstallState(state bool) {

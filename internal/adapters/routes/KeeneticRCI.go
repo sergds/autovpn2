@@ -17,6 +17,10 @@ import (
 
 // Implementation of routes adapter for Keenetic RCI (Remote Configuration Interface), which is basically a JSON RPC with OpenWRT UCI+Cisco like commands in JSON objects form.
 // SergDS (C) 2024
+// Adapter config:
+// keenetic_login -- login:password.
+// keenetic_origin -- keenetic address, or keendns host.
+
 type KeeneticRCI struct {
 	endpoint string
 	hclient  *http.Client
@@ -27,20 +31,20 @@ func newKeeneticRCI() *KeeneticRCI {
 	return &KeeneticRCI{hclient: &http.Client{Jar: jar}}
 }
 
-func (k *KeeneticRCI) Authenticate(creds string, endpoint string) error {
-	realcreds := strings.Split(creds, ":")
+func (k *KeeneticRCI) Authenticate(conf map[string]string) error {
+	realcreds := strings.Split(conf["keenetic_login"], ":")
 	if len(realcreds) != 2 {
 		return errors.New("wrong creds format (expected \"user:password\")")
 	}
-	k.endpoint = endpoint
-	resp, err := k.hclient.Get(endpoint + "/auth")
+	k.endpoint = conf["keenetic_origin"]
+	resp, err := k.hclient.Get(k.endpoint + "/auth")
 	if err != nil {
 		return err
 	}
 	if resp.StatusCode == 401 {
 		md5h := md5.Sum([]byte(realcreds[0] + ":" + resp.Header.Get("X-NDM-Realm") + ":" + realcreds[1]))
 		sha256h := sha256.Sum256([]byte(resp.Header.Get("X-NDM-Challenge") + hex.EncodeToString(md5h[:])))
-		resp, err := k.hclient.Post(endpoint+"/auth", "application/json", strings.NewReader("{\"login\": \""+realcreds[0]+"\", \"password\": \""+hex.EncodeToString(sha256h[:])+"\"}"))
+		resp, err := k.hclient.Post(k.endpoint+"/auth", "application/json", strings.NewReader("{\"login\": \""+realcreds[0]+"\", \"password\": \""+hex.EncodeToString(sha256h[:])+"\"}"))
 		if resp.StatusCode == 200 && err == nil {
 			return nil // we are in
 		}

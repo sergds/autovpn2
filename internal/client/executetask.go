@@ -20,7 +20,7 @@ func Execute(task string, argv []string) {
 	args := argv
 	sp := fastansi.NewStatusPrinter()
 	conn := ConnectToServer(sp)
-	sp.Status(3, "Connected to AutoVPN @ "+conn.Target())
+	sp.Status(3, color.GreenString("Connected to AutoVPN @ "+conn.Target()))
 	sp.Status(1, "\t\t\t\t")
 	sp.Status(0, "\t\t\t\t")
 	sp.Status(2, "\t\t\t\t")
@@ -38,7 +38,7 @@ func Execute(task string, argv []string) {
 				os.Exit(0)
 			}
 			args[0] = string(pbc)
-			sp.Status(2, color.YellowString("Applying playbook..."))
+			sp.Status(2, color.WhiteString("Applying playbook..."))
 
 		}
 	case pb.TASK_UNDO:
@@ -57,7 +57,7 @@ func Execute(task string, argv []string) {
 		pbname = strings.Split(pbname, string(os.PathSeparator))[len(strings.Split(pbname, string(os.PathSeparator)))-1]
 		pbname = strings.Split(pbname, ".")[0]
 		args[0] = pbname
-		sp.Status(2, color.YellowString("Undoing playbook..."))
+		sp.Status(2, color.WhiteString("Undoing playbook..."))
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -88,10 +88,14 @@ func Execute(task string, argv []string) {
 		case pb.STEP_PUSH_SUMMARY:
 			summary = append(summary, *status.Opdesc)
 		default:
-			sp.Status(1, *status.Statetext)
+			{
+				fastansi.SGR("1") // bold
+				sp.Status(1, color.BlueString(*status.Statetext))
+				fastansi.SGR("0") // no attr (reset)
+			}
 		}
 		if status.Opdesc != nil {
-			sp.Status(0, *status.Opdesc)
+			sp.Status(0, color.HiCyanString(*status.Opdesc))
 		}
 	}
 	if len(summary) != 0 {

@@ -7,6 +7,10 @@ func NewRouteAdapter(name string) RouteAdapter {
 	switch n {
 	case "keeneticrci":
 		return newKeeneticRCI()
+	case "null":
+		return newNullRoutes()
+	default:
+		return newNullRoutes()
 	}
 	return nil
 }
