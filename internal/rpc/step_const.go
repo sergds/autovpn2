@@ -6,7 +6,7 @@ const (
 	STEP_DNS          = "dns"          // Use when using dns adapter
 	STEP_ROUTES       = "routes"       // Use when using routes adapter
 	STEP_NOTIFY       = "notify"       // STATE text gets put into current step name on client
-	STEP_ERROR        = "error"        // For errors, STATE text is essentially the error message
+	STEP_ERROR        = "error"        // Terminates executors! For errors, STATE text is essentially the error message.
 	STEP_PUSH_SUMMARY = "push_summary" // Push this string into client's summary. Summary is shown at the end of operation.
 )
 
@@ -36,6 +36,6 @@ func DescribeState(state string) string {
 	case UNDO_STEP_ROUTES:
 		return "Undoing static routes"
 	default:
-		return "Unknown"
+		return ""
 	}
 }

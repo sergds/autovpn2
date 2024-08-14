@@ -42,6 +42,8 @@ func (s *AutoVPNServer) StepFetchIPs(updates chan *executor.ExecutorUpdate, ctx 
 			dnsrecords[h] = ip
 		}
 	}
+	curpb.PlaybookAddrs = dnsrecords
+	ctx = context.WithValue(ctx, "playbook", curpb)
 	ctx = context.WithValue(ctx, "dnsrecords", dnsrecords)
 	return ctx
 }
