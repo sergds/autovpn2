@@ -65,7 +65,7 @@ hosts: # List of hosts to route through VPN.
 - yt4.ggpht.com
 - i9.ytimg.com
 # Video CDN
-- rr2---sn-8ph2xajvh-ut5l.googlevideo.com
+# To be dealt with separately. Add a new wildcard address record to .googlevideo.com. The record's ip should be added here when raw ip support is implemented.
 ```
 
 ### Implemented Features (more like TODO)
