@@ -5,7 +5,7 @@ A tool to easily manage VPN routed hosts in a small/home network with a local DN
 ### Why?
 It was created specifically for my needs, because of Russian Government blocking "illegal" websites, as well as western companies geoblocking russians (because of US Export Restrictions or other regulations.). 
 
-This tool was made in order to evade these pointless blocks network-wide without wasting time manually verifying (and later updating) addesses.
+This tool was made in order to evade these pointless blocks network-wide without wasting time manually verifying (and later updating) addresses.
 
 Actually this is a second iteration of the autovpn toolset. The first autovpn had a one big list of domains to be "unblocked" and was a simple python script, which needed to be run periodally over ssh to keep Keenetic routes and Pi-hole DNS fresh. This became clumsy really fast, and after the rumors about russian government blocking YouTube reached me i decided to rewrite this in Go as a client-server app, with playbook approach to be able to scale it up a bit easier.
 
@@ -41,38 +41,14 @@ GLOBAL OPTIONS:
 
 ### Example Playbook YAML
 ```yaml
-# EXAMPLE OF A REAL AUTOVPN PLAYBOOK.
-# Playbook to unblock youtube in Russia
-name: YouTube
-adapters: # Names for factory method
-  routes: "KeeneticRCI"
-  dns: "PiholeAPI"
-adapterconfig: # Correspond to Authenticate() interface args
-  routes:
-    creds: "admin:password"
-    endpoint: "http://10.0.2.1"
-  dns:
-    creds: "apikey"
-    endpoint: "http://10.0.2.2:8080"
-interface: Wireguard1
-hosts: # List of hosts to route through VPN.
-# Frontend
-- www.youtube.com
-- youtube.com
-# User Images
-- i.ytimg.com
-- yt3.ggpht.com
-- yt4.ggpht.com
-- i9.ytimg.com
-# Video CDN
-# To be dealt with separately. Add a new wildcard address record to .googlevideo.com. The record's ip should be added here when raw ip support is implemented.
+# TODO
 ```
 
 ### Implemented Features (more like TODO)
 - [X] Routes
 - [X] DNS
 - [X] Try retrieving data from adapters for undo instead of it storing locally. (To avoid duplicate stray routes or dns records of different addresses)
-- [ ] Allow specifying raw IPs in playbook's hosts
+- [X] Allow specifying raw IPs in playbook's hosts
 - [X] Store server playbooks in persistient cache (File? (Key-value) DB?)
 - [ ] Auto-refreshing of playbook routes and DNS
 - [ ] Clean code

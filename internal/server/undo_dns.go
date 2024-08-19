@@ -25,7 +25,11 @@ func (s *AutoVPNServer) StepUndoDNS(updates chan *executor.ExecutorUpdate, ctx c
 		return ctx
 	}
 	var records []dnsadapters.DNSRecord = make([]dnsadapters.DNSRecord, 0)
-	recs := dnsad.GetRecords("A")
+	recs, err := dnsad.GetRecords("A")
+	if err != nil {
+		updates <- &executor.ExecutorUpdate{CurrentStep: rpc.STEP_ERROR, StepMessage: "Failed getting current records: " + err.Error()}
+		return ctx
+	}
 	for _, rec := range recs {
 		for _, domain := range curpb.Hosts {
 			if rec.Domain == domain {

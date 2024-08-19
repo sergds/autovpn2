@@ -2,6 +2,9 @@ package server
 
 import (
 	"context"
+	"net"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/likexian/doh"
@@ -15,6 +18,16 @@ func (s *AutoVPNServer) StepFetchIPs(updates chan *executor.ExecutorUpdate, ctx 
 	var dnsrecords map[string]string = make(map[string]string)
 	curpb := ctx.Value("playbook").(*playbook.Playbook)
 	for _, host := range curpb.Hosts {
+		// Check if host is an internet address. Just store them as is and generate an arpa rdns domain.
+		if net.ParseIP(host) != nil {
+			octets := strings.Split(host, ".")
+			slices.Reverse(octets)
+			arpa := strings.Join(octets, ".") + ".in-addr.arpa"
+			dnsrecords[arpa] = host
+			updates <- &executor.ExecutorUpdate{CurrentStep: rpc.STEP_PUSH_SUMMARY, StepMessage: "Processed IP " + host + " -> " + arpa}
+
+			continue
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		c := doh.Use(doh.CloudflareProvider)

@@ -112,7 +112,7 @@ func (s *AutoVPNServer) ExecuteTask(in *pb.ExecuteRequest, ss pb.AutoVPN_Execute
 			ex.AddStep(executor.NewStep(pb.STEP_DNS, s.StepApplyDNS))
 			ex.AddStep(executor.NewStep(pb.STEP_DNS, s.StepUpdatePlaybook))
 			ex.AddStep(executor.NewStep(pb.STEP_ROUTES, s.StepApplyRoutes))
-			ex.AddStep(executor.NewStep(pb.STEP_ROUTES, s.StepFinalizePlaybook)) // "finalize" here - set status as installed
+			ex.AddStep(executor.NewStep(pb.STEP_ROUTES, s.StepFinalizePlaybook)) // "finalize" here - set status as installed and unlock
 		}
 	case pb.TASK_UNDO:
 		{
