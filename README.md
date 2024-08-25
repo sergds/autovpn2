@@ -5,6 +5,8 @@ A tool to easily manage VPN routed hosts in a small/home network with a local DN
 ### Why?
 It was created specifically for my needs, because of Russian Government blocking "illegal" websites, as well as western companies geoblocking russians (because of US Export Restrictions or other regulations.). 
 
+And if government blocks can be relatively easily evaded with packet modifications, the geoblocks can not.
+
 This tool was made in order to evade these pointless blocks network-wide without wasting time manually verifying (and later updating) addresses.
 
 Actually this is a second iteration of the autovpn toolset. The first autovpn had a one big list of domains to be "unblocked" and was a simple python script, which needed to be run periodally over ssh to keep Keenetic routes and Pi-hole DNS fresh. This became clumsy really fast, and after the rumors about russian government blocking YouTube reached me i decided to rewrite this in Go as a client-server app, with playbook approach to be able to scale it up a bit easier.

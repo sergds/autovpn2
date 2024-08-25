@@ -78,11 +78,24 @@ func (*AutoVPNServer) reportStatus(ss pb.AutoVPN_ExecuteTaskServer, state string
 func (s *AutoVPNServer) ExecuteTask(in *pb.ExecuteRequest, ss pb.AutoVPN_ExecuteTaskServer) error {
 	s.reportStatus(ss, pb.STEP_NOTIFY, "Building Executor")
 	var ex *executor.Executor = executor.NewExecutor()
+	var pb_updated bool = false
 	switch in.Operation { // Build Executor
 	case pb.TASK_LIST:
 		ex.AddStep(executor.NewStep(pb.STEP_LIST, s.StepList))
 	case pb.TASK_APPLY:
 		{
+			// yep, that's definitely a HACK!
+			curpb, err := playbook.Parse(in.Argv[0])
+			if err != nil {
+				s.reportStatus(ss, pb.STEP_ERROR, err.Error())
+				return err
+			}
+			pbooks := GetAllPlaybooksFromDB(s.playbookDB)
+			for pname, pbook := range pbooks {
+				if curpb.Name == pname && pbook.GetInstallState() {
+					pb_updated = true
+				}
+			}
 			ex.AddStep(executor.NewStep("prep_ctx", func(updates chan *executor.ExecutorUpdate, ctx context.Context) context.Context { // TODO: Should I introduce new step const for these?
 				curpb, err := playbook.Parse(in.Argv[0])
 				if err != nil {
@@ -92,8 +105,8 @@ func (s *AutoVPNServer) ExecuteTask(in *pb.ExecuteRequest, ss pb.AutoVPN_Execute
 				pbooks := GetAllPlaybooksFromDB(s.playbookDB)
 				for pname, pbook := range pbooks {
 					if curpb.Name == pname && pbook.GetInstallState() {
-						updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "There is already a playbook named " + curpb.Name + "! Undo it first!"}
-						return ctx
+						updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_PUSH_SUMMARY, StepMessage: "There is already a playbook named " + curpb.Name + "! Updating it!"}
+						ctx = context.WithValue(ctx, "old_playbook", pbook)
 					}
 				}
 				if !curpb.Lock("Apply") {
@@ -102,12 +115,20 @@ func (s *AutoVPNServer) ExecuteTask(in *pb.ExecuteRequest, ss pb.AutoVPN_Execute
 				}
 				err = UpdatePlaybookDB(s.playbookDB, curpb)
 				if err != nil {
-					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Failed adding playbook to db: " + err.Error() + ")"}
+					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Failed adding playbook to db: " + err.Error()}
 					return ctx
 				}
 				ctx = context.WithValue(ctx, "playbook", curpb)
 				return ctx
 			}))
+			// Just to be sure. Apply steps ~should~ handle old addrs, but potentially can lead to stray routes or dns records in the long run when undoing time comes.
+			if pb_updated {
+				ex.AddStep(executor.NewStep("swap", s.StepSwapPlaybooks))
+				ex.AddStep(executor.NewStep(pb.UNDO_STEP_DNS, s.StepUndoDNS))
+				ex.AddStep(executor.NewStep(pb.UNDO_STEP_ROUTES, s.StepUndoRoutes))
+				ex.AddStep(executor.NewStep("swap", s.StepSwapPlaybooks)) // At this point old_playbook is no longer needed and was overwritten, so no need to unlock and stuff.
+				// Continue with new one as usual.
+			}
 			ex.AddStep(executor.NewStep(pb.STEP_FETCHIP, s.StepFetchIPs))
 			ex.AddStep(executor.NewStep(pb.STEP_DNS, s.StepApplyDNS))
 			ex.AddStep(executor.NewStep(pb.STEP_DNS, s.StepUpdatePlaybook))
@@ -136,7 +157,7 @@ func (s *AutoVPNServer) ExecuteTask(in *pb.ExecuteRequest, ss pb.AutoVPN_Execute
 					return ctx
 				}
 				if !wasinstalled {
-					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Such playbook exists, but not installed! Removing!"}
+					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Such playbook exists, but didn't finish installing! Removing!"}
 					DeletePlaybookDB(s.playbookDB, curpb)
 					return ctx
 				}

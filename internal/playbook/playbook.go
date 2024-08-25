@@ -14,13 +14,15 @@ type Playbook struct {
 		Routes map[string]string `yaml:",omitempty"`
 		Dns    map[string]string `yaml:",omitempty"`
 	}
-	Interface     string
-	Hosts         []string          `yaml:",omitempty"`
-	Custom        map[string]string `yaml:",omitempty"`
-	PlaybookAddrs map[string]string `yaml:",omitempty"` // Used for undoing, auto-refresh
-	Installed     bool              `yaml:",omitempty"`
-	Busy          bool              `yaml:",omitempty"`
-	Busyreason    string            `yaml:",omitempty"`
+	Interface          string
+	Hosts              []string          `yaml:",omitempty"`
+	Custom             map[string]string `yaml:",omitempty"`
+	Autoupdateinterval int
+	InstallTime        int64             `yaml:",omitempty"`
+	PlaybookAddrs      map[string]string `yaml:",omitempty"` // Used for undoing, auto-refresh
+	Installed          bool              `yaml:",omitempty"`
+	Busy               bool              `yaml:",omitempty"`
+	Busyreason         string            `yaml:",omitempty"`
 }
 
 func Parse(pbyaml string) (*Playbook, error) {
