@@ -134,7 +134,7 @@ func (k *KeeneticRCI) DelRoute(route Route) error {
 }
 
 func (k *KeeneticRCI) SaveConfig() error {
-	return k.rciRequestJSON("[{\"system\": {\"configuration\": {\"save\": True}}}]")
+	return k.rciRequestJSON("[{\"system\": {\"configuration\": {\"save\": \"true\"}}}]")
 }
 
 func (k *KeeneticRCI) rciRequestJSON(contents string) error {
@@ -146,6 +146,7 @@ func (k *KeeneticRCI) rciRequestJSON(contents string) error {
 	if resp.StatusCode == 200 {
 		return nil
 	}
+	fmt.Println("[Keenetic RCI] Failed request: " + contents + ". Check syslog for precise reason!")
 	return errors.New("non 200 status code")
 }
 
