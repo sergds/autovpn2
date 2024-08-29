@@ -143,6 +143,33 @@ func (k *KeeneticRCI) rciRequestJSON(contents string) error {
 		fmt.Println(err.Error())
 		return err
 	}
+	c, _ := io.ReadAll(resp.Body)
+	if strings.Contains(string(c), "\"error\"") && strings.Contains(string(c), "\"status\"") { // Catch failed status
+		// JSONightmare avoiding time!
+		// Cut only status from response
+		_, st, _ := strings.Cut(string(c), "\"status\"")
+		st = "\"status\"" + st
+		// status is an array and we send only one command per request, this means only 1 status array, so cut after first ']'
+		st, _, _ = strings.Cut(st, "]")
+		st += "]"
+		// Make it a valid object
+		st += "}"
+		st = "{" + st
+		j, err := jason.NewObjectFromBytes([]byte(st))
+		if err != nil {
+			return errors.New("failed parsing error status from rci: " + err.Error())
+		}
+		st_arr, err := j.GetObjectArray("status")
+		if err != nil {
+			return errors.New("failed parsing error status from rci: " + err.Error())
+		}
+		finalmsg, err := st_arr[0].GetString("message")
+		if err != nil {
+			return errors.New("failed parsing error status from rci: " + err.Error())
+		}
+		// Return a funny message to the user!
+		return errors.New(finalmsg)
+	}
 	if resp.StatusCode == 200 {
 		return nil
 	}

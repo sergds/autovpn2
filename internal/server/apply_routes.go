@@ -54,8 +54,8 @@ func (s *AutoVPNServer) StepApplyRoutes(updates chan *executor.ExecutorUpdate, c
 	for h, ip := range dnsrecords {
 		err := routead.AddRoute(routes.Route{Destination: ip, Gateway: "0.0.0.0", Interface: curpb.Interface, Comment: "[AutoVPN2] Playbook: " + curpb.Name + " Host: " + h})
 		if err != nil {
-			updates <- &executor.ExecutorUpdate{CurrentStep: rpc.STEP_PUSH_SUMMARY, StepMessage: "Failed to add a route " + ip + ": " + err.Error()}
-			continue
+			updates <- &executor.ExecutorUpdate{CurrentStep: rpc.STEP_ERROR, StepMessage: "Failed to add a route " + ip + ": " + err.Error()}
+			return ctx
 		}
 		updates <- &executor.ExecutorUpdate{CurrentStep: rpc.STEP_PUSH_SUMMARY, StepMessage: "Routed " + ip + "\t->\t" + curpb.Interface}
 	}

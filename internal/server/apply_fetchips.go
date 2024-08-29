@@ -32,6 +32,10 @@ func (s *AutoVPNServer) StepFetchIPs(updates chan *executor.ExecutorUpdate, ctx 
 		defer cancel()
 		c := doh.Use(doh.CloudflareProvider)
 		resp, err := c.Query(ctx, dns.Domain(host), dns.TypeA)
+		if err != nil {
+			updates <- &executor.ExecutorUpdate{CurrentStep: rpc.STEP_ERROR, StepMessage: "Failed to resolve domain " + host + "! " + err.Error()}
+			return ctx
+		}
 		answ := ""
 		for _, a := range resp.Answer {
 			if a.Type == 1 {
