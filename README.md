@@ -28,6 +28,7 @@ Routes:
 - KeeneticRCI (Implementation of routes adapter for Keenetic Remote Configuration Interface)
 
 ### Usage
+Server is automatically discovered via MDNS.
 ```
 NAME:
    autovpn - autovpnupdater rewritten in go
@@ -49,7 +50,6 @@ GLOBAL OPTIONS:
    --help, -h     show help
    --version, -v  print the version
 ```
-
 ### Example Playbook YAML
 ```yaml
 # Playbook to bypass Netflix geoblock in west-east eu regions.
