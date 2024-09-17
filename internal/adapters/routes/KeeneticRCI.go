@@ -15,7 +15,7 @@ import (
 	"github.com/antonholmquist/jason"
 )
 
-// Implementation of routes adapter for Keenetic RCI (Remote Configuration Interface), which is basically a JSON RPC with OpenWRT UCI+Cisco like commands in JSON objects form.
+// Implementation of routes adapter for NDMS RCI (Remote Command Interface), which is basically a JSON RPC with OpenWRT UCI+Cisco like commands in JSON objects form.
 // SergDS (C) 2024
 // Adapter config:
 // keenetic_login -- login:password.
