@@ -33,4 +33,5 @@ func (u *AutoUpdater) GetEntries() map[string]int {
 
 func (u *AutoUpdater) DelEntry(name string) {
 	delete(u.cronTable, name)
+	delete(u.ageTable, name)
 }

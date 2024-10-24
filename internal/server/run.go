@@ -171,6 +171,7 @@ func (s *AutoVPNServer) ExecuteTask(in *pb.ExecuteRequest, ss pb.AutoVPN_Execute
 					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Failed adding playbook to db: " + err.Error()}
 					return ctx
 				}
+				s.UpdateUpdaterTable()
 				ctx = context.WithValue(ctx, "playbook", curpb)
 				return ctx
 			}))
@@ -246,8 +247,8 @@ func (s *AutoVPNServer) UpdateUpdaterTable() {
 	// Clean up removed.
 	for name, _ := range s.updater.GetEntries() {
 		ispresent := false
-		for name2_new, _ := range books {
-			if name2_new == name {
+		for name2_new, pb := range books {
+			if name2_new == name && pb.GetInstallState() && pb.GetLockReason() == "" {
 				ispresent = true
 			}
 		}
