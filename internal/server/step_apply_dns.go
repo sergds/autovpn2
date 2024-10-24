@@ -12,6 +12,8 @@ import (
 	"github.com/sergds/autovpn2/internal/rpc"
 )
 
+// Put these DNS records onto our dns cache server or whatever.
+// Wants in context: "playbook", "dnsrecords"
 func (s *AutoVPNServer) StepApplyDNS(updates chan *executor.ExecutorUpdate, ctx context.Context) context.Context {
 	curpb := ctx.Value("playbook").(*playbook.Playbook)
 	dnsrecords := ctx.Value("dnsrecords").(map[string]string)
@@ -58,6 +60,7 @@ func (s *AutoVPNServer) StepApplyDNS(updates chan *executor.ExecutorUpdate, ctx 
 		updates <- &executor.ExecutorUpdate{CurrentStep: rpc.STEP_PUSH_SUMMARY, StepMessage: "Added " + host + "\tIN\tA\t" + ip}
 	}
 	err = UpdatePlaybookDB(s.playbookDB, curpb)
+	s.UpdateUpdaterTable()
 	if err != nil {
 		updates <- &executor.ExecutorUpdate{CurrentStep: rpc.STEP_ERROR, StepMessage: "Failed updating playbook in db: " + err.Error()}
 	}

@@ -19,6 +19,7 @@ func ResolveFirstAddr() []net.IP {
 	return ResolveAddr("")
 }
 
+// use mdns magic to find our local autovpn. if your network despises mdns, well...
 func ResolveAddr(host string) []net.IP {
 	sp := fastansi.NewStatusPrinter()
 	sp.Status(1, "Resolving AutoVPN host(s) via mDNS...")

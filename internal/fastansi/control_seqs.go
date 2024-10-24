@@ -1,3 +1,4 @@
+// "fast"ansi -- Thing that windows CMD.EXE does not support. (spoiler: because windows sucks)
 package fastansi
 
 import "fmt"

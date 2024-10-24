@@ -14,6 +14,8 @@ import (
 	"github.com/sergds/autovpn2/internal/rpc"
 )
 
+// Run DOH resolver to gather ips to route.
+// Wants in context: "playbook"
 func (s *AutoVPNServer) StepFetchIPs(updates chan *executor.ExecutorUpdate, ctx context.Context) context.Context {
 	var dnsrecords map[string]string = make(map[string]string)
 	curpb := ctx.Value("playbook").(*playbook.Playbook)

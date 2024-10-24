@@ -10,6 +10,8 @@ import (
 	"github.com/sergds/autovpn2/internal/rpc"
 )
 
+// Remove these routes records from our router.
+// Wants in context: "playbook"
 func (*AutoVPNServer) StepUndoRoutes(updates chan *executor.ExecutorUpdate, ctx context.Context) context.Context {
 	curpb := ctx.Value("playbook").(*playbook.Playbook)
 

@@ -10,6 +10,8 @@ import (
 	"github.com/sergds/autovpn2/internal/rpc"
 )
 
+// Put these routes on our router.
+// Wants in context: playbook, dnsrecords
 func (s *AutoVPNServer) StepApplyRoutes(updates chan *executor.ExecutorUpdate, ctx context.Context) context.Context {
 	curpb := ctx.Value("playbook").(*playbook.Playbook)
 	dnsrecords := ctx.Value("dnsrecords").(map[string]string)

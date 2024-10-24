@@ -14,6 +14,7 @@ import (
 	pb "github.com/sergds/autovpn2/internal/rpc"
 )
 
+// The place where most client magic happens.
 func Execute(task string, argv []string) {
 	var summary []string = make([]string, 0)
 
@@ -90,7 +91,7 @@ func Execute(task string, argv []string) {
 		default:
 			{
 				fastansi.SGR("1") // bold
-				sp.Status(1, color.BlueString(*status.Statetext))
+				sp.Status(1, color.BlueString("["+task+"]"+*status.Statetext))
 				fastansi.SGR("0") // no attr (reset)
 			}
 		}

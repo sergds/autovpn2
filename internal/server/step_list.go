@@ -9,6 +9,7 @@ import (
 	"github.com/sergds/autovpn2/internal/rpc"
 )
 
+// List our playbooks to the user
 func (s *AutoVPNServer) StepList(updates chan *executor.ExecutorUpdate, ctx context.Context) context.Context {
 	pbooks := GetAllPlaybooksFromDB(s.playbookDB)
 	var pbnames []string = make([]string, 0)

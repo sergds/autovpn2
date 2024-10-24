@@ -4,6 +4,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// AutoVPN's Playbooks are basically a crackhead's attempt at Ansible playbooks you've probably heard about.
+// Unlike Ansible, however, mine don't have nearly the same level of versatility. and are limited to predefined autovpn tasks (yeaah you can't create a custom task to nuke The Great Chinese Firewall with a DDOS (yet.)).
+// For example look into examples/ file(s).
 type Playbook struct {
 	Name     string
 	Adapters struct {

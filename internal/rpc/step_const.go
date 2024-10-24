@@ -1,5 +1,6 @@
 package rpc
 
+// contains enums for steps that we can build tasks of.
 const (
 	STEP_LIST         = "list"         // List playbooks
 	STEP_FETCHIP      = "fetchip"      // Use when resolving ips
@@ -15,6 +16,7 @@ const (
 	UNDO_STEP_ROUTES = "undo_routes" // When removing routes
 )
 
+// Describe to the poor user tf we are doing right now.
 func DescribeState(state string) string {
 	switch state {
 	case STEP_LIST:
@@ -36,6 +38,6 @@ func DescribeState(state string) string {
 	case UNDO_STEP_ROUTES:
 		return "Undoing static routes"
 	default:
-		return ""
+		return "" // no idea, something custom. Maybe we don't need these enums, if 40% of tasks will hit default case here.
 	}
 }

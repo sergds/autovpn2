@@ -9,6 +9,7 @@ import (
 )
 
 // Swap new playbook with retrieved old. For updating existing playbooks with new revisions.
+// Wants in context: old_playbook, playbook
 func (s *AutoVPNServer) StepSwapPlaybooks(updates chan *executor.ExecutorUpdate, ctx context.Context) context.Context {
 	old_pbook := ctx.Value("old_playbook").(*playbook.Playbook)
 	pbook := ctx.Value("playbook").(*playbook.Playbook)
@@ -17,6 +18,7 @@ func (s *AutoVPNServer) StepSwapPlaybooks(updates chan *executor.ExecutorUpdate,
 	if old_pbook.GetLockReason() != "Reapply" && old_pbook.GetLockReason() != "Apply" { // Make sure that it isn't locked already or actually is the new one post-swap.
 		if old_pbook.Lock("Reapply") {
 			err := UpdatePlaybookDB(s.playbookDB, old_pbook)
+			s.UpdateUpdaterTable()
 			if err != nil {
 				updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Failed locking old playbook in db: " + err.Error()}
 				return ctx

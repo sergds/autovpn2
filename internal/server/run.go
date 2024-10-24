@@ -24,6 +24,7 @@ var clear string = "\t\t\t\t\t\t"
 type AutoVPNServer struct {
 	pb.UnimplementedAutoVPNServer
 	playbookDB *bolt.DB
+	updater    *AutoUpdater
 }
 
 func GetAllPlaybooksFromDB(db *bolt.DB) map[string]*playbook.Playbook {
@@ -165,6 +166,11 @@ func (s *AutoVPNServer) ExecuteTask(in *pb.ExecuteRequest, ss pb.AutoVPN_Execute
 					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Playbook is being processed at the moment (reason: " + curpb.GetLockReason() + ")!"}
 					return ctx
 				}
+				err := UpdatePlaybookDB(s.playbookDB, curpb)
+				if err != nil {
+					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Failed adding playbook to db: " + err.Error()}
+					return ctx
+				}
 				ctx = context.WithValue(ctx, "playbook", curpb)
 				return ctx
 			}))
@@ -226,41 +232,39 @@ func (s *AutoVPNServer) ExecuteTask(in *pb.ExecuteRequest, ss pb.AutoVPN_Execute
 		s.reportStatus(ss, pb.STEP_ERROR, "Failed to run executor: executor is nil")
 		return nil
 	}
+	s.UpdateUpdaterTable()
 	return nil
 }
 
-/*
-	func (*AutoVPNServer) reportStatus(ss pb.AutoVPN_ApplyServer, msg string, status int32) {
-		st := msg
-		ss.Send(&pb.ApplyResponse{Status: status, Statustext: &st})
+func (s *AutoVPNServer) UpdateUpdaterTable() {
+	log.Println("Updating autoupdater ")
+	books := GetAllPlaybooksFromDB(s.playbookDB)
+	for name, pbook := range books {
+		log.Println("Adding updater entry: " + name + " :: " + fmt.Sprint(pbook.Autoupdateinterval) + " hour(s)")
+		s.updater.UpdateEntry(name, pbook.Autoupdateinterval)
 	}
+	// Clean up removed.
+	for name, _ := range s.updater.GetEntries() {
+		ispresent := false
+		for name2_new, _ := range books {
+			if name2_new == name {
+				ispresent = true
+			}
+		}
+		if !ispresent {
+			log.Println("Collecting stale garbage entry from updater table: " + name)
+			s.updater.DelEntry(name)
+		}
+	}
+}
 
-	func (*AutoVPNServer) reportStatusUndo(ss pb.AutoVPN_UndoServer, msg string, status int32) {
-		st := msg
-		ss.Send(&pb.UndoResponse{Status: status, Statustext: &st})
+func (s *AutoVPNServer) UpdaterLoop() {
+	for {
+		time.Sleep(1 * time.Second)
+		s.updater.Tick()
 	}
+}
 
-	func (s *AutoVPNServer) Undo(in *pb.UndoRequest, ss pb.AutoVPN_UndoServer) error {
-		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_DNS})
-		shouldReturn, returnValue := s.UndoDNS(curpb, ss, in)
-		if shouldReturn {
-			return returnValue
-		}
-		ss.Send(&pb.UndoResponse{Status: pb.UNDO_STATUS_ROUTES})
-		// Try getting addrs from route addresses.
-		failedroutes, shouldReturn1, returnValue1 := s.UndoRoutes(curpb, ss)
-		if shouldReturn1 {
-			return returnValue1
-		}
-		s.reportStatusUndo(ss, "Finished", pb.UNDO_STATUS_PUSH_SUMMARY)
-		if len(failedroutes) != 0 {
-			s.reportStatusUndo(ss, "Following routes failed to delete: "+strings.Join(failedroutes, ", ")+". Manual intervention is likely needed", pb.UNDO_STATUS_PUSH_SUMMARY)
-		}
-		DeletePlaybookDB(s.playbookDB, curpb)
-		curpb.Unlock()
-		return nil
-	}
-*/
 func ServerMain() {
 	lis, err := net.Listen("tcp", "0.0.0.0:15328")
 	if err != nil {
@@ -286,14 +290,18 @@ func ServerMain() {
 	if err != nil {
 		log.Fatalf("failed preparing pbdb: %s", err)
 	}
-	pb.RegisterAutoVPNServer(s, &AutoVPNServer{playbookDB: pbdb})
+	srv := &AutoVPNServer{playbookDB: pbdb}
+	upd := NewAutoUpdater(srv)
+	srv.updater = upd
+	go srv.UpdaterLoop()
+	pb.RegisterAutoVPNServer(s, srv)
 	host, _ := os.Hostname()
 	server, err := zeroconf.Register("AutoVPN Server @ "+host, "_autovpn._tcp", "local.", 15328, []string{"txtv=0", "host=" + host}, nil)
 	defer server.Shutdown()
 	if err != nil {
 		log.Fatalln("Failed to initialize mDNS:", err.Error())
 	}
-
+	srv.UpdateUpdaterTable()
 	log.Printf("autovpn server running @ %s", lis.Addr().String())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

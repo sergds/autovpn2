@@ -10,6 +10,11 @@ import (
 const ERR_FINISHED = "executor finished"
 const ERR_NOTSTART = "executor is not running"
 
+// Executor just does what's on the label.
+// In Start() you provide (chan *ExecutorUpdate) update channel to get status updates (including step errors! more on them later) carefully relayed from steps via stepchan pump goroutine.
+// on every Tick() It executes every step in order they were added until it reaches the end. Tick() May return unhandled step error or one of two executor's own errors (ERR_FINISHED or ERR_NOTSTART).
+// Errors are pretty descriptive: ERR_FINISHED means it ran out of steps to execute (you're done with task), ERR_NOTSTART means you forgot to Start()
+// When step returns an ExecutorUpdate with "error" step, the stepchan pump relays it to your update channel, stops executor, and shutdowns itself. if you don't do GetLastError (bad for you), the error will still be returned to you by Tick() and then the executor behaves like a stopped one.
 type Executor struct {
 	Steps       []*Step
 	currentstep int

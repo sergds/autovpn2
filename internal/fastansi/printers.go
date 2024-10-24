@@ -2,6 +2,7 @@ package fastansi
 
 import "fmt"
 
+// Like the rest of "fast"ansi, this is just a weird utility thing, to create these fancy multiline TUI statuses. BUT with minimal code.
 type StatusPrinter struct {
 	maxlines      int
 	maxlines_prev int

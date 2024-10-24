@@ -12,6 +12,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// Where it all begins...
 func main() {
 	fmt.Print("\n\n")
 	app := &cli.App{

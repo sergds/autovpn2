@@ -9,6 +9,8 @@ import (
 	"github.com/sergds/autovpn2/internal/rpc"
 )
 
+// Remove these DNS records from our dns cache server or whatever.
+// Wants in context: "playbook"
 func (s *AutoVPNServer) StepUndoDNS(updates chan *executor.ExecutorUpdate, ctx context.Context) context.Context {
 	curpb := ctx.Value("playbook").(*playbook.Playbook)
 
