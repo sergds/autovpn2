@@ -241,8 +241,10 @@ func (s *AutoVPNServer) UpdateUpdaterTable() {
 	log.Println("Updating autoupdater ")
 	books := GetAllPlaybooksFromDB(s.playbookDB)
 	for name, pbook := range books {
-		log.Println("Adding updater entry: " + name + " :: " + fmt.Sprint(pbook.Autoupdateinterval) + " hour(s)")
-		s.updater.UpdateEntry(name, pbook.Autoupdateinterval)
+		if pbook.GetInstallState() && pbook.GetLockReason() == "" {
+			log.Println("Adding updater entry: " + name + " :: " + fmt.Sprint(pbook.Autoupdateinterval) + " hour(s)")
+			s.updater.UpdateEntry(name, pbook.Autoupdateinterval)
+		}
 	}
 	// Clean up removed.
 	for name, _ := range s.updater.GetEntries() {
