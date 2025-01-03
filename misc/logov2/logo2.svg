@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="130.28966mm"
+   height="24.75872mm"
+   viewBox="0 0 130.28966 24.75872"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="logo2.svg"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   inkscape:export-filename="logo2.png"
+   inkscape:export-xdpi="120"
+   inkscape:export-ydpi="120"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#999999"
+     borderopacity="1"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="2"
+     inkscape:cx="257.75"
+     inkscape:cy="-14.5"
+     inkscape:window-width="1920"
+     inkscape:window-height="1008"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g3" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Слой 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-20.315359,-5.9358547)">
+    <g
+       id="g3"
+       transform="translate(0.1259057,4.658511)"
+       style="stroke-width:2;stroke-dasharray:none">
+      <g
+         id="g4"
+         inkscape:label="a"
+         style="fill:#333333;stroke:#1a1a1a">
+        <path
+           style="fill:#333333;stroke:none;stroke-linecap:square"
+           d="m 34.746094,6.75 -13.941407,17.814453 -0.615234,0.787109 3.244485,-1.19147 0.617187,-0.787109 9.802391,-12.234311 3.68164,13.74414 0.259766,0.966797 1.93164,-0.517578 -0.259765,-0.966797 z"
+           id="path1"
+           sodipodi:nodetypes="ccccccccccc" />
+        <path
+           style="fill:#333333;stroke:none"
+           d="m 36.763672,16.634766 -10.828125,1.384765 0.253906,1.984375 10.828125,-1.384765 z"
+           id="path2"
+           sodipodi:nodetypes="ccccc" />
+      </g>
+      <path
+         style="fill:#ff2a2a"
+         d="M 52.707031,1.2773437 40.478516,20.435547 35.595348,5.6090014 34.742187,6.7519531 39.722656,25.337891 54.392578,2.3535156 Z"
+         id="path3"
+         sodipodi:nodetypes="ccccccc" />
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:25.4px;font-family:Arial;-inkscape-font-specification:Arial;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#000000;stroke:#ffffff;stroke-width:0.3;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none"
+       x="45.097103"
+       y="30.24692"
+       id="text6"><tspan
+         sodipodi:role="line"
+         id="tspan6"
+         style="font-style:italic;fill:#000000;stroke:#ffffff;stroke-width:0.3;stroke-dasharray:none"
+         x="45.097103"
+         y="30.24692">AutoVPN</tspan></text>
+  </g>
+</svg>
