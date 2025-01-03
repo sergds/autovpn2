@@ -9,9 +9,9 @@ import (
 
 	"github.com/likexian/doh"
 	"github.com/likexian/doh/dns"
-	"github.com/sergds/autovpn2/internal/executor"
 	"github.com/sergds/autovpn2/internal/playbook"
 	"github.com/sergds/autovpn2/internal/rpc"
+	"github.com/sergds/autovpn2/internal/server/executor"
 )
 
 // Run DOH resolver to gather ips to route.

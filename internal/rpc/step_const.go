@@ -9,6 +9,8 @@ const (
 	STEP_NOTIFY       = "notify"       // STATE text gets put into current step name on client
 	STEP_ERROR        = "error"        // Terminates executors! For errors, STATE text is essentially the error message.
 	STEP_PUSH_SUMMARY = "push_summary" // Push this string into client's summary. Summary is shown at the end of operation.
+	STEP_LOCK_ADD     = "lock_add"
+	STEP_PREP_CTX     = "prep_ctx"
 )
 
 const (
@@ -37,6 +39,10 @@ func DescribeState(state string) string {
 		return "Undoing DNS records"
 	case UNDO_STEP_ROUTES:
 		return "Undoing static routes"
+	case STEP_LOCK_ADD:
+		return "Locking playbook and adding to DB"
+	case STEP_PREP_CTX:
+		return "Preparing for operation"
 	default:
 		return "" // no idea, something custom. Maybe we don't need these enums, if 40% of tasks will hit default case here.
 	}

@@ -2,10 +2,6 @@
 ![logo](misc/logov1/logo.png)
 A tool to easily manage VPN routed hosts in a small/home network with a local DNS (like Pi-Hole).
 
-Demo:
-
-[![asciicast](https://asciinema.org/a/LWbu1n94rRlqeuvsRki1LSpZR.svg)](https://asciinema.org/a/LWbu1n94rRlqeuvsRki1LSpZR)
-
 ### Why?
 It was created specifically for my needs, because of Russian Government blocking "illegal" websites, as well as western companies geoblocking russians (because of US Export Restrictions or other regulations.). 
 

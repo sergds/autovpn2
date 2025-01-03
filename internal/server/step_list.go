@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sergds/autovpn2/internal/executor"
 	"github.com/sergds/autovpn2/internal/rpc"
+	"github.com/sergds/autovpn2/internal/server/executor"
 )
 
 // List our playbooks to the user

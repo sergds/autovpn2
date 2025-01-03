@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/sergds/autovpn2/internal/adapters/routes"
-	"github.com/sergds/autovpn2/internal/executor"
 	"github.com/sergds/autovpn2/internal/playbook"
 	"github.com/sergds/autovpn2/internal/rpc"
+	"github.com/sergds/autovpn2/internal/server/executor"
 )
 
 // Put these routes on our router.

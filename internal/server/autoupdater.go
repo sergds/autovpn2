@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"time"
 )
 
@@ -20,6 +21,12 @@ func (u *AutoUpdater) Tick() {
 	for k, _ := range u.cronTable {
 		u.ageTable[k] = time.Now().Unix() - books[k].InstallTime
 		//log.Println(k, v, u.ageTable[k], u.ageTable[k]/3600)
+	}
+
+	for k, v := range u.cronTable {
+		if int(u.ageTable[k]/3600) > v {
+			log.Println(k+" needs updating:", u.ageTable[k]/3600)
+		}
 	}
 }
 

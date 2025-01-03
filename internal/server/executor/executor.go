@@ -34,8 +34,16 @@ func NewExecutor() *Executor {
 	return &Executor{currentstep: 0, ctx: context.Background(), running: false, Steps: make([]*Step, 0)}
 }
 
+func (e *Executor) SetContext(ctx context.Context) {
+	if !e.running {
+		e.ctx = ctx
+	}
+}
+
 func (e *Executor) AddStep(step *Step) {
-	e.Steps = append(e.Steps, step)
+	if !e.running {
+		e.Steps = append(e.Steps, step)
+	}
 }
 
 func (e *Executor) Start(updates chan *ExecutorUpdate) {
@@ -43,7 +51,6 @@ func (e *Executor) Start(updates chan *ExecutorUpdate) {
 		return
 	}
 	e.running = true
-	e.ctx = context.Background()
 	e.currentstep = 0
 	e.stepchan = make(chan *ExecutorUpdate)
 	e.updateschan = updates

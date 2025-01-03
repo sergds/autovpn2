@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/grandcat/zeroconf"
-	"github.com/sergds/autovpn2/internal/executor"
 	"github.com/sergds/autovpn2/internal/playbook"
 	pb "github.com/sergds/autovpn2/internal/rpc"
+	"github.com/sergds/autovpn2/internal/server/executor"
 	bolt "go.etcd.io/bbolt"
 	"google.golang.org/grpc"
 )
@@ -79,113 +79,34 @@ func (*AutoVPNServer) reportStatus(ss pb.AutoVPN_ExecuteTaskServer, state string
 func (s *AutoVPNServer) ExecuteTask(in *pb.ExecuteRequest, ss pb.AutoVPN_ExecuteTaskServer) error {
 	s.reportStatus(ss, pb.STEP_NOTIFY, "Building Executor")
 	var ex *executor.Executor = executor.NewExecutor()
-	var pb_updated bool = false
+	var builder *TaskBuilder = NewTaskBuilder(s)
 	switch in.Operation { // Build Executor
 	case pb.TASK_LIST:
-		ex.AddStep(executor.NewStep(pb.STEP_LIST, s.StepList))
-	case pb.TASK_APPLY:
 		{
-			// yep, that's definitely a HACK!
-			curpb, err := playbook.Parse(in.Argv[0])
+			err := builder.List()
 			if err != nil {
 				s.reportStatus(ss, pb.STEP_ERROR, err.Error())
 				return err
 			}
-			pbooks := GetAllPlaybooksFromDB(s.playbookDB)
-			for pname, pbook := range pbooks {
-				if curpb.Name == pname && pbook.GetInstallState() {
-					pb_updated = true
-				}
+			ex = builder.Build()
+		}
+	case pb.TASK_APPLY:
+		{
+			err := builder.Apply(in.Argv[0])
+			if err != nil {
+				s.reportStatus(ss, pb.STEP_ERROR, err.Error())
+				return err
 			}
-			ex.AddStep(executor.NewStep("prep_ctx", func(updates chan *executor.ExecutorUpdate, ctx context.Context) context.Context { // TODO: Should I introduce new step const for these?
-				curpb, err := playbook.Parse(in.Argv[0])
-				if err != nil {
-					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Failed to parse playbook!"}
-					return ctx
-				}
-				pbooks := GetAllPlaybooksFromDB(s.playbookDB)
-				for pname, pbook := range pbooks {
-					if curpb.Name == pname && pbook.GetInstallState() {
-						updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_PUSH_SUMMARY, StepMessage: "There is already a playbook named " + curpb.Name + "! Updating it!"}
-						ctx = context.WithValue(ctx, "old_playbook", pbook)
-					}
-				}
-				if !curpb.Lock("Apply") {
-					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Unexpected lock on fresh playbook! (reason: " + curpb.GetLockReason() + ")"}
-					return ctx
-				}
-				err = UpdatePlaybookDB(s.playbookDB, curpb)
-				if err != nil {
-					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Failed adding playbook to db: " + err.Error()}
-					return ctx
-				}
-				ctx = context.WithValue(ctx, "playbook", curpb)
-				return ctx
-			}))
-			// Just to be sure. Apply steps ~should~ handle old addrs, but potentially can lead to stray routes or dns records in the long run when undoing time comes.
-			if pb_updated {
-				ex.AddStep(executor.NewStep("swap", s.StepSwapPlaybooks))
-				ex.AddStep(executor.NewStep(pb.UNDO_STEP_DNS, s.StepUndoDNS))
-				ex.AddStep(executor.NewStep(pb.UNDO_STEP_ROUTES, s.StepUndoRoutes))
-				ex.AddStep(executor.NewStep("swap", s.StepSwapPlaybooks)) // At this point old_playbook is no longer needed and was overwritten, so no need to unlock and stuff.
-				// Continue with new one as usual.
-			}
-			ex.AddStep(executor.NewStep(pb.STEP_FETCHIP, s.StepFetchIPs))
-			ex.AddStep(executor.NewStep(pb.STEP_DNS, s.StepApplyDNS))
-			ex.AddStep(executor.NewStep(pb.STEP_DNS, s.StepUpdatePlaybook))
-			ex.AddStep(executor.NewStep(pb.STEP_ROUTES, s.StepApplyRoutes))
-			ex.AddStep(executor.NewStep(pb.STEP_ROUTES, s.StepFinalizePlaybook)) // "finalize" here - set status as installed and unlock
+			ex = builder.Build()
 		}
 	case pb.TASK_UNDO:
 		{
-			ex.AddStep(executor.NewStep("prep_ctx", func(updates chan *executor.ExecutorUpdate, ctx context.Context) context.Context { // TODO: Should I introduce new step const for these?
-				var ok bool = false
-				var wasinstalled bool = false
-				var curpb *playbook.Playbook = nil
-				pbooks := GetAllPlaybooksFromDB(s.playbookDB)
-
-				for _, pbook := range pbooks {
-					if pbook.Name == in.Argv[0] {
-						ok = true
-						curpb = pbook
-						if pbook.GetInstallState() {
-							wasinstalled = true
-						}
-					}
-				}
-				if !ok {
-					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "No such playbook " + in.Argv[0] + " installed!"}
-					return ctx
-				}
-				if !wasinstalled {
-					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Such playbook exists, but didn't finish installing! Removing!"}
-					DeletePlaybookDB(s.playbookDB, curpb)
-					return ctx
-				}
-				if !curpb.Lock("Undo") {
-					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Playbook is being processed at the moment (reason: " + curpb.GetLockReason() + ")!"}
-					return ctx
-				}
-				err := UpdatePlaybookDB(s.playbookDB, curpb)
-				if err != nil {
-					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Failed adding playbook to db: " + err.Error()}
-					return ctx
-				}
-				s.UpdateUpdaterTable()
-				ctx = context.WithValue(ctx, "playbook", curpb)
-				return ctx
-			}))
-			ex.AddStep(executor.NewStep(pb.UNDO_STEP_DNS, s.StepUpdatePlaybook))
-			ex.AddStep(executor.NewStep(pb.UNDO_STEP_DNS, s.StepUndoDNS))
-			ex.AddStep(executor.NewStep(pb.UNDO_STEP_ROUTES, s.StepUndoRoutes))
-			ex.AddStep(executor.NewStep("finalize", func(updates chan *executor.ExecutorUpdate, ctx context.Context) context.Context {
-				curpb := ctx.Value("playbook").(*playbook.Playbook)
-				err := DeletePlaybookDB(s.playbookDB, curpb)
-				if err != nil {
-					updates <- &executor.ExecutorUpdate{CurrentStep: pb.STEP_ERROR, StepMessage: "Failed removing playbook from db: " + err.Error()}
-				}
-				return ctx
-			}))
+			err := builder.Undo(in.Argv[0])
+			if err != nil {
+				s.reportStatus(ss, pb.STEP_ERROR, err.Error())
+				return err
+			}
+			ex = builder.Build()
 		}
 	default:
 		s.reportStatus(ss, pb.STEP_ERROR, "Failed to build executor: task doesn't exist")

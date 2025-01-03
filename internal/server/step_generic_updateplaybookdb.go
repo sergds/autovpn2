@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 
-	"github.com/sergds/autovpn2/internal/executor"
 	"github.com/sergds/autovpn2/internal/playbook"
 	"github.com/sergds/autovpn2/internal/rpc"
+	"github.com/sergds/autovpn2/internal/server/executor"
 )
 
 // Update current playbook in bbolt db.

@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/sergds/autovpn2/internal/executor"
 	"github.com/sergds/autovpn2/internal/playbook"
 	"github.com/sergds/autovpn2/internal/rpc"
+	"github.com/sergds/autovpn2/internal/server/executor"
 )
 
 // Set out playbook as installed and unlock.

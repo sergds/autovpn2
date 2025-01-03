@@ -4,9 +4,9 @@ import (
 	"context"
 
 	dnsadapters "github.com/sergds/autovpn2/internal/adapters/dns"
-	"github.com/sergds/autovpn2/internal/executor"
 	"github.com/sergds/autovpn2/internal/playbook"
 	"github.com/sergds/autovpn2/internal/rpc"
+	"github.com/sergds/autovpn2/internal/server/executor"
 )
 
 // Remove these DNS records from our dns cache server or whatever.
